@@ -4,7 +4,7 @@
 
 ## Table of contents
 * [Create a vllm server on Polaris](#create-your-own-vllm-server-on-polaris)
-* [Test Question Answer Pairs](#test-question-answer-pairs)
+* [Test Question Answer Pairs](#test-question-answers-pairs)
 
 ## Create your own vllm server on Polaris
 
@@ -87,7 +87,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ...
 ```
 
-## Test Question Answer Pairs
+## Test Question Answers Pairs
 
 Go to another **login** node of Polaris and run the [tunnel.sh](./inference_server/tunnel.sh) to establish a ssh tunnel to the allocated node running the inference server, and set proxy.
 
