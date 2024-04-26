@@ -1,5 +1,11 @@
-# Mantine Vite template
+# AuroraGPT Questions UI
 
-Get started with the template by clicking `Use this template` button on the top of the page.
+A form to author questions for LLMs for evaluation
 
-[Documentation](https://mantine.dev/guides/vite/)
+
+Development: 
+
+```
+npm install
+npm run dev
+```
