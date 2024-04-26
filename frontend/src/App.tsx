@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { MantineProvider, Container, TextInput, Text, Button, Autocomplete, MultiSelect, Flex, Textarea, em, Grid, Table} from '@mantine/core';
 import { notifications, Notifications } from '@mantine/notifications';
-import { useDisclosure } from '@mantine/hooks';
 import { theme } from "./theme";
 import '@mantine/core/styles.css';
 import classes from './HeaderSimple.module.css';
@@ -23,7 +22,11 @@ export default function App() {
   </MantineProvider>;
 }
 
-export function HeaderSimple({author}) {
+interface HeaderProps {
+    author: string
+};
+
+export function HeaderSimple({author} : HeaderProps) {
 
   return (
     <header className={classes.header}>
@@ -47,8 +50,13 @@ export function QuestionsInstructions() {
             </ul>
         </div>);
 }
-export function QuestionsForm({author, setAuthor}) {
-    const authorChange = (e) => {
+
+interface QuestionsFormProps {
+    author: string;
+    setAuthor: (author: string) => void;
+};
+export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
+    const authorChange = (e: ChangeEvent<HTMLInputElement>) => {
         console.log(e.currentTarget.value);
         setAuthor(e.currentTarget.value);
     }
@@ -80,7 +88,7 @@ export function QuestionsForm({author, setAuthor}) {
         newDistractors.push("");
         setDistractors(newDistractors);
     };
-    const removeDistractor = (idx) => {
+    const removeDistractor = (idx: number) => {
         const newDistractors = [...distractors];
         newDistractors.splice(idx, 1)
         setDistractors(newDistractors);
@@ -126,7 +134,7 @@ export function QuestionsForm({author, setAuthor}) {
                 {distractors.map((value, index) => {
                     const placeholder = `incorrect choice ${index + 1}`;
                     const label = `Incorrect Answer ${index + 1}`;
-                    const change = (v) => {
+                    const change = (v: ChangeEvent<HTMLTextAreaElement>) => {
                         const newDistractors = [...distractors];
                         newDistractors[index] = v.currentTarget.value;
                         console.log(newDistractors);
