@@ -98,3 +98,9 @@ cd <path_to_this_repo>
 bash inference_server/tunnel.sh # establish ssh tunnel
 source inference_server/set_proxy.sh # set proxy
 ```
+
+Then you can test few question answer pairs by running:
+
+```bash
+python test_questions.py
+```
