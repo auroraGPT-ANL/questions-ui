@@ -8,6 +8,7 @@ import classes from './HeaderSimple.module.css';
 interface Result {
     model: string;
     score: number;
+    correct: boolean;
 };
 
 export default function App() {
@@ -93,33 +94,95 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         newDistractors.splice(idx, 1)
         setDistractors(newDistractors);
     };
-    const testQuestion = () => {
-        setTested(true);
-        //TODO actually test the models using the OpenAI API with the baseURL set to the selfhosted verison
-        //TODO rate limit this to say 20 questions per hour to prevent abuse
-        //TODO show an error message if there was a problem such as the rate limit
-        setResults([{model: "lamma2", score: 100}]);
-        notifications.show({title: 'testing question', message: 'please wait'});
+    const testQuestion = async () => {
+        const testing = notifications.show({title: 'testing question', message: 'please wait', autoClose: false});
+        try {
+            const response = await fetch('/api/test_question', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(
+                    {
+                        question: question,
+                        correct_answer: correctAnswer,
+                        distractors: distractors,
+                        skills: skills,
+                        domains: domains,
+                        difficulty: difficulty,
+                        doi: doi,
+                        support: support,
+                        comments: comments,
+                        author: author,
+                    }
+                )
+            });
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
+            const eval_results = await response.json();
+            setResults(eval_results);
+
+            notifications.hide(testing);
+            notifications.show({title: 'testing completed', message: `completed testing your question: ${question}`});
+            setTested(true);
+
+        } catch (error) {
+            notifications.hide(testing);
+            notifications.show({title: 'testing failed', message: `failed submitting your question: ${error}`});
+        }
 
     };
-    const submitQuestion = () => {
-        //TODO actually submit the qustion to the database only if this is successful
-        notifications.show({title: 'submitting question', message: 'please wait'});
-        //TODO only clear things if submitting the question succeeded
-        setDifficulty('undergraduate');
-        setQuestion('');
-        setCorrectAnswer('');
-        setSkills([]);
-        setDomains([]);
-        setResults([]);
-        setDistractors(['', '','','']);
-        setTested(false);
+    const submitQuestion = async () => {
+        const submitting = notifications.show({title: 'submitting question', message: 'please wait', autoClose: false});
+        try {
+            const response = await fetch("/api/question", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(
+                    {
+                        question: question,
+                        correct_answer: correctAnswer,
+                        distractors: distractors,
+                        skills: skills,
+                        domains: domains,
+                        difficulty: difficulty,
+                        doi: doi,
+                        support: support,
+                        comments: comments,
+                        author: author,
+                    }
+                )
+            });
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
+            console.log("success", response)
+            notifications.hide(submitting);
+            notifications.show({title: 'submitted question', message: `submitted your question: ${question}`});
+
+            setQuestion('');
+            setCorrectAnswer('');
+            setDistractors(['', '','','']);
+            setDOI('');
+            setComments('')
+            setSupport('')
+            setResults([]);
+            setTested(false);
+            }
+        catch (error) {
+            notifications.hide(submitting);
+            notifications.show({title: 'submitting failed', message: `failed submitting your question: ${error}`});
+        }
     };
 
     const result_rows = results.map(e => (
         <Table.Tr key={e.model}>
             <Table.Td>{e.model}</Table.Td>
             <Table.Td>{e.score}</Table.Td>
+            <Table.Td>{e.correct}</Table.Td>
         </Table.Tr>
     ));
 
@@ -166,6 +229,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                             <Table.Tr>
                                 <Table.Th>Model</Table.Th>
                                 <Table.Th>Score</Table.Th>
+                                <Table.Th>Correct</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>{result_rows}</Table.Tbody>
