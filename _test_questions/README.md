@@ -71,6 +71,7 @@ cd <path_to_this_repo>
 conda activate <path_to_conda_env> # change <path_to_conda_env> to the one created
 export HF_TOKEN=<your_hf_write_token>
 export RAY_TMPDIR='/tmp'
+export OPENBLAS_NUM_THREADS=16
 CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m vllm.entrypoints.openai.api_server --model meta-llama/Llama-2-7b-hf --tokenizer=meta-llama/Llama-2-7b-hf  --download-dir=<your_cache_dir> --host 0.0.0.0 --tensor-parallel-size 4 # change <your_cache_dir>
 ```
 
