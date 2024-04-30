@@ -1,6 +1,78 @@
 import math
-from openai import OpenAI
+import asyncio
 from typing import List, Tuple
+from openai import OpenAI, AsyncOpenAI
+
+async def get_loglikelihood_async(
+    client: AsyncOpenAI,
+    question: str,
+    answer: str,
+    model: str,
+) -> float:
+    """
+    Return the loglikelihood of a certain answer given the question in an asynchronous way.
+    """
+    context = f"You are a friendly and helpful AI assistant. Please help me to answer the following question.\n\nQuestion {question}\n\nAnswer:"
+    continuation = f" {answer.strip()}"
+    # Obtain the number of tokens in the context
+    context_echo = await client.completions.create(
+        model=model,
+        prompt=context,
+        echo=True,
+        max_tokens=0,
+        temperature=0.0,
+        logprobs=1,
+    )
+    context_num_tokens = len(context_echo.choices[0].logprobs.token_logprobs)
+    # Get the completion for the whole query
+    completion = await client.completions.create(
+        model=model,
+        prompt=context + continuation,
+        echo=True,
+        max_tokens=0,
+        temperature=0.0,
+        logprobs=1,
+    )
+    token_logprobs = completion.choices[0].logprobs.token_logprobs
+    loglikelihood = sum(token_logprobs[context_num_tokens:])
+    return loglikelihood
+
+async def test_question_async(
+    api_base_url: str,
+    model: str,
+    question: str,
+    correct_answer: str,
+    incorrect_answers: List[str],
+) -> Tuple[bool, float]:
+    """
+    Test a question and a series of answers against a model, and return whether 
+    the model can choose the correct answer and the relative probability of the 
+    correct answer as a float score number in [0, 1] in an asynchronous way.
+
+    :param api_base_url: the base URL of a OpenAI-API-Compatible server.
+    :param model: the model name in the server.
+    :param question: the question string.
+    :param correct_answer: the correct answer string.
+    :param incorrect_answers: a list of incorrect answer strings.
+
+    :return answer_correctly: whether the model can choose the correct answer or not
+    :return score: a float number in [0, 1] indicating the relative probability of the correct answer
+    """
+    client = AsyncOpenAI(base_url=api_base_url)
+
+    correct_loglikelihood = await get_loglikelihood_async(client, question, correct_answer, model)
+
+    incorrect_loglikelihoods = await asyncio.gather(
+        *[get_loglikelihood_async(client, question, incorrect_answer, model) for incorrect_answer in incorrect_answers]
+    )
+
+    answer_correctly = correct_loglikelihood > max(incorrect_loglikelihoods)
+    score = math.exp(correct_loglikelihood) / (sum([math.exp(loglikelihood) for loglikelihood in incorrect_loglikelihoods]) + math.exp(correct_loglikelihood))
+
+    print(f"Correct loglikelihood: {correct_loglikelihood}")
+    print(f"Incorrect loglikelihoods: {incorrect_loglikelihoods}")
+
+    return answer_correctly, score
 
 def get_loglikelihood(
     client: OpenAI,
@@ -77,6 +149,7 @@ def test_question(
 
 """Test the function"""
 if __name__ == "__main__":
+    TEST_ASYNC = True
     api_base_url = "http://localhost:8000/v1"
     model = "meta-llama/Llama-2-7b-hf"
     print("==============================================")
@@ -86,7 +159,10 @@ if __name__ == "__main__":
     print(f"Question: {question}")
     print(f"Correct answer: {correct_answer}")
     print(f"Incorrect answers: {incorrect_answers}")
-    answer_correctly, score = test_question(api_base_url, model, question, correct_answer, incorrect_answers)
+    if TEST_ASYNC:
+        answer_correctly, score = asyncio.run(test_question_async(api_base_url, model, question, correct_answer, incorrect_answers))
+    else:
+        answer_correctly, score = test_question(api_base_url, model, question, correct_answer, incorrect_answers)
     print(f"Answer correctly: {answer_correctly}")
     print(f"Score: {score}")
     print("==============================================")
@@ -96,7 +172,10 @@ if __name__ == "__main__":
     print(f"Question: {question}")
     print(f"Correct answer: {correct_answer}")
     print(f"Incorrect answers: {incorrect_answers}")
-    answer_correctly, score = test_question(api_base_url, model, question, correct_answer, incorrect_answers)
+    if TEST_ASYNC:
+        answer_correctly, score = asyncio.run(test_question_async(api_base_url, model, question, correct_answer, incorrect_answers))
+    else:
+        answer_correctly, score = test_question(api_base_url, model, question, correct_answer, incorrect_answers)
     print(f"Answer correctly: {answer_correctly}")
     print(f"Score: {score}")
     print("==============================================")
@@ -109,7 +188,10 @@ if __name__ == "__main__":
     print(f"Question: {question}")
     print(f"Correct answer: {correct_answer}")
     print(f"Incorrect answers: {incorrect_answers}")
-    answer_correctly, score = test_question(api_base_url, model, question, correct_answer, incorrect_answers)
+    if TEST_ASYNC:
+        answer_correctly, score = asyncio.run(test_question_async(api_base_url, model, question, correct_answer, incorrect_answers))
+    else:
+        answer_correctly, score = test_question(api_base_url, model, question, correct_answer, incorrect_answers)
     print(f"Answer correctly: {answer_correctly}")
     print(f"Score: {score}")
     print("==============================================")
