@@ -1,59 +1,39 @@
-import os
 import math
-import transformers 
 from openai import OpenAI
-from typing import List, Tuple, Any
-
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-def encode_pair(
-    tokenizer: Any, 
-    context: str, 
-    continuation: str
-):
-    """
-    Encode a pair of context and continuation into token IDs.
-    Note: We need to move the space at the end of the context 
-    to the beginning of the continuation.
-
-    :param tokenizer: the tokenizer object.
-    :param context: the context string (i.e. prompt+question).
-    :param continuation: the continuation string (i.e. answer).
-    """
-    n_spaces = len(context) - len(context.rstrip())
-    if n_spaces > 0:
-        continuation = context[-n_spaces:] + continuation
-        context = context[:-n_spaces]
-    whole_enc = tokenizer.encode(context + continuation)
-    context_enc = tokenizer.encode(context)
-    context_enc_len = len(context_enc)
-    continuation_enc = whole_enc[context_enc_len:]
-    return context_enc, continuation_enc
+from typing import List, Tuple
 
 def get_loglikelihood(
     client: OpenAI,
     question: str,
     answer: str,
     model: str,
-    tokenizer: Any,
 ) -> float:
     """
     Return the loglikelihood of a certain answer given the question.
     """
-    context = f"You are a friendly and helpful AI assistant. Please help me to answer the following question.\n\nQuestion {question}\n\nAnswer: "
-    continuation = answer
-    context_enc, continuation_enc = encode_pair(tokenizer, context, continuation)
-    completion = client.completions.create(
+    context = f"You are a friendly and helpful AI assistant. Please help me to answer the following question.\n\nQuestion {question}\n\nAnswer:"
+    continuation = f" {answer.strip()}"
+    # Obtain the number of tokens in the context
+    context_echo = client.completions.create(
         model=model,
-        prompt=context_enc + continuation_enc,
+        prompt=context,
         echo=True,
         max_tokens=0,
         temperature=0.0,
-        logprobs=5,
-        seed=42,
+        logprobs=1,
+    )
+    context_num_tokens = len(context_echo.choices[0].logprobs.token_logprobs)
+    # Get the completion for the whole query
+    completion = client.completions.create(
+        model=model,
+        prompt=context + continuation,
+        echo=True,
+        max_tokens=0,
+        temperature=0.0,
+        logprobs=1,
     )
     token_logprobs = completion.choices[0].logprobs.token_logprobs
-    loglikelihood = sum(token_logprobs[len(context_enc):])
+    loglikelihood = sum(token_logprobs[context_num_tokens:])
     return loglikelihood
 
 def test_question(
@@ -77,13 +57,12 @@ def test_question(
     :return answer_correctly: whether the model can choose the correct answer or not
     :return score: a float number in [0, 1] indicating the relative probability of the correct answer
     """
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model)
     client = OpenAI(base_url=api_base_url)
 
-    correct_loglikelihood = get_loglikelihood(client, question, correct_answer, model, tokenizer)
+    correct_loglikelihood = get_loglikelihood(client, question, correct_answer, model)
 
     incorrect_loglikelihoods = [
-        get_loglikelihood(client, question, incorrect_answer, model, tokenizer)
+        get_loglikelihood(client, question, incorrect_answer, model)
         for incorrect_answer in incorrect_answers
     ]
 
@@ -142,25 +121,25 @@ Sample outputs to the above test cases:
 Question: What is the capital of France?
 Correct answer: Paris
 Incorrect answers: ['London', 'Berlin', 'Madrid']
-Correct loglikelihood: -0.8237540125846863
-Incorrect loglikelihoods: [-5.507347583770752, -5.804222583770752, -7.778831958770752]
+Correct loglikelihood: -5.820445537567139
+Incorrect loglikelihoods: [-12.03919506072998, -13.01575756072998, -15.39857006072998]
 Answer correctly: True
-Score: 0.9832161552674344
+Score: 0.997196824939692
 ==============================================
 Question: Where is Argonne National Laboratory located?
 Correct answer: Lemont, Illinois
 Incorrect answers: ['New York, New York', 'Los Angeles, California', 'Champaign, Illinois']
-Correct loglikelihood: -13.957975372672081
-Incorrect loglikelihoods: [-11.717722415924072, -10.848501920700073, -9.38187937438488]
+Correct loglikelihood: -21.478347714582924
+Incorrect loglikelihoods: [-23.230124585330486, -20.380263715982437, -18.945664616767317]
 Answer correctly: False
-Score: 0.007695895788592497
+Score: 0.05966902318211982
 ==============================================
 Question: What is machine learning?
 Correct answer: Machine learning is a subset of artificial intelligence (AI) that provides systems the ability to automatically learn and improve from experience without being explicitly programmed.
 Incorrect answers: ['Machine learning is a machine that can learn how to do anything.', 'Machine learning is a subset of mechanical engineering.']
-Correct loglikelihood: -11.542558703338727
-Incorrect loglikelihoods: [-23.30599206313491, -20.439436744898558]
+Correct loglikelihood: -20.41767909093346
+Incorrect loglikelihoods: [-38.0242698478105, -28.61479689974908]
 Answer correctly: True
-Score: 0.9998554214602303
+Score: 0.9997246069750586
 ==============================================
 """
