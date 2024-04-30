@@ -1,4 +1,6 @@
+import math
 import asyncio
+from openai import AsyncOpenAI
 from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -14,6 +16,14 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///questions.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+BACKEND_READY = False # Set to True when the LLM API is ready for requests.
+LLM_API_BASE_URL = "http://localhost:8000/v1" # Replace it.
+ASYNC_LLM_CLIENT = AsyncOpenAI(base_url=LLM_API_BASE_URL)
+MODEL_NAME_MAP = {
+    "lamma2:7b": "meta-llama/Llama-2-7b-hf",
+    "mistral:7b": "mistralai/Mistral-7B-v0.1",
+}
 
 skills_to_questions = Table("skills_to_questions",
                             Base.metadata,
@@ -189,23 +199,67 @@ def get_questions(db: Session = Depends(get_db), skip:int=0, limit:int=100, q:Op
             )
             for q in list_questions(db, skip, limit, query=q)]
 
+async def get_loglikelihood_async(
+    client: AsyncOpenAI,
+    question: str,
+    answer: str,
+    model: str,
+) -> float:
+    """
+    Return the loglikelihood of a certain answer given the question in an asynchronous way.
+    """
+    context = f"You are a friendly and helpful AI assistant. Please help me to answer the following question.\n\nQuestion {question}\n\nAnswer:"
+    continuation = f" {answer.strip()}"
+    # Obtain the number of tokens in the context
+    context_echo = await client.completions.create(
+        model=model,
+        prompt=context,
+        echo=True,
+        max_tokens=0,
+        temperature=0.0,
+        logprobs=1,
+    )
+    context_num_tokens = len(context_echo.choices[0].logprobs.token_logprobs)
+    # Get the completion for the whole query
+    completion = await client.completions.create(
+        model=model,
+        prompt=context + continuation,
+        echo=True,
+        max_tokens=0,
+        temperature=0.0,
+        logprobs=1,
+    )
+    token_logprobs = completion.choices[0].logprobs.token_logprobs
+    loglikelihood = sum(token_logprobs[context_num_tokens:])
+    return loglikelihood
+
 async def test_question_impl(
-        api_base_url: str,
         model: str,
         question: str,
         correct_answer: str,
         incorrect_answers: List[str],
         ) -> Tuple[bool,float]:
-    await asyncio.sleep(1)
-    return False, 0.0
+    if BACKEND_READY:
+        model = MODEL_NAME_MAP[model]
+        correct_loglikelihood = await get_loglikelihood_async(ASYNC_LLM_CLIENT, question, correct_answer, model)
+
+        incorrect_loglikelihoods = await asyncio.gather(
+            *[get_loglikelihood_async(ASYNC_LLM_CLIENT, question, incorrect_answer, model) for incorrect_answer in incorrect_answers]
+        )
+
+        answer_correctly = correct_loglikelihood > max(incorrect_loglikelihoods)
+        score = math.exp(correct_loglikelihood) / (sum([math.exp(loglikelihood) for loglikelihood in incorrect_loglikelihoods]) + math.exp(correct_loglikelihood))
+
+        return answer_correctly, score
+    else:
+        return False, 0.0
 
 @app.post("/api/test_question", response_model=list[QuestionEvalSchema])
 async def test_question(question: CreateQuestionSchema):
-    api_base_url = ""
     results: list[Tuple[str, asyncio.Task[Tuple[bool, float]]]] = []
     async with asyncio.TaskGroup() as tg:
         for model in ["lamma2:7b", "mistral:7b"]:
-            results.append((model, tg.create_task(test_question_impl(api_base_url, model, question.question, question.correct_answer, question.distractors))))
+            results.append((model, tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors))))
     return [QuestionEvalSchema(model=m, score=t.result()[1], correct=t.result()[0]) for (m,t) in results]
     
 
