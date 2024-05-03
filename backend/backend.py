@@ -17,9 +17,9 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-BACKEND_READY = False # Set to True when the LLM API is ready for requests.
-LLM_API_BASE_URL = "http://localhost:8000/v1" # Replace it.
-ASYNC_LLM_CLIENT = AsyncOpenAI(base_url=LLM_API_BASE_URL)
+BACKEND_READY = True # Set to True when the LLM API is ready for requests.
+LLM_API_BASE_URL = "http://140.221.70.43:5005/llm/v1" # Replace it.
+ASYNC_LLM_CLIENT = AsyncOpenAI(base_url=LLM_API_BASE_URL, api_key='EMPTY')
 MODEL_NAME_MAP = {
     "lamma2:7b": "meta-llama/Llama-2-7b-hf",
     "mistral:7b": "mistralai/Mistral-7B-v0.1",
@@ -261,5 +261,3 @@ async def test_question(question: CreateQuestionSchema):
         for model in ["lamma2:7b", "mistral:7b"]:
             results.append((model, tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors))))
     return [QuestionEvalSchema(model=m, score=t.result()[1], correct=t.result()[0]) for (m,t) in results]
-    
-
