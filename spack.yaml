@@ -1,0 +1,16 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  # add package specs to the `specs` list
+  specs:
+  - py-uvicorn
+  - npm
+  - py-mysql-connector-python
+  - mysql+client_only
+  view: true
+  concretizer:
+    unify: true
+    duplicates:
+      strategy: none
