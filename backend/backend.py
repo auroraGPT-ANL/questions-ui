@@ -1,7 +1,7 @@
 import math
 import asyncio
 from openai import AsyncOpenAI
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -162,8 +162,8 @@ app = FastAPI()
 app.mount("/ui", StaticFiles(directory="ui"), name="ui")
 
 @app.get("/")
-def homepage():
-    return RedirectResponse(url="/projects/auroragptquestions/ui/index.html", status_code=status.HTTP_302_FOUND)
+def homepage(request: Request):
+    return RedirectResponse(url=request.scope.get("root_path", "") + "/ui/index.html", status_code=status.HTTP_302_FOUND)
 
 @app.post("/api/question", response_model=QuestionSchema)
 def store_question(question: CreateQuestionSchema, db: Session = Depends(get_db)):
