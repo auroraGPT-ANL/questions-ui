@@ -163,7 +163,7 @@ app.mount("/ui", StaticFiles(directory="ui"), name="ui")
 
 @app.get("/")
 def homepage():
-    return RedirectResponse(url="/ui/index.html", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/projects/auroragptquestions/ui/index.html", status_code=status.HTTP_302_FOUND)
 
 @app.post("/api/question", response_model=QuestionSchema)
 def store_question(question: CreateQuestionSchema, db: Session = Depends(get_db)):

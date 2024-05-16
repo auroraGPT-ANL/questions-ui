@@ -9,6 +9,8 @@ spack:
   - npm
   - py-mysql-connector-python
   - mysql+client_only
+  - py-pip
+  - neovim
   view: true
   concretizer:
     unify: true

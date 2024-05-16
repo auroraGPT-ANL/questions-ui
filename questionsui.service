@@ -1,0 +1,12 @@
+[Unit]
+Description=AuroraGPT Questions Service
+After=mysql.service network-online.target
+Requires=mysql.service network-online.target
+
+[Service]
+Type=exec
+User=agpt
+ExecStart=/bin/bash /app/questions-ui/startapp.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -58,7 +58,6 @@ interface QuestionsFormProps {
 };
 export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const authorChange = (e: ChangeEvent<HTMLInputElement>) => {
-        console.log(e.currentTarget.value);
         setAuthor(e.currentTarget.value);
     }
 
@@ -97,7 +96,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const testQuestion = async () => {
         const testing = notifications.show({title: 'testing question', message: 'please wait', autoClose: false});
         try {
-            const response = await fetch('/api/test_question', {
+            const response = await fetch('/projects/auroragptquestions/api/test_question', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -136,7 +135,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const submitQuestion = async () => {
         const submitting = notifications.show({title: 'submitting question', message: 'please wait', autoClose: false});
         try {
-            const response = await fetch("/api/question", {
+            const response = await fetch("/projects/auroragptquestions/api/question", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -159,7 +158,6 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             if (!response.ok) {
                 throw new Error(response.statusText);
             }
-            console.log("success", response)
             notifications.hide(submitting);
             notifications.show({title: 'submitted question', message: `submitted your question: ${question}`});
 
@@ -182,7 +180,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         <Table.Tr key={e.model}>
             <Table.Td>{e.model}</Table.Td>
             <Table.Td>{e.score}</Table.Td>
-            <Table.Td>{e.correct}</Table.Td>
+            <Table.Td>{e.correct.toString()}</Table.Td>
         </Table.Tr>
     ));
 
@@ -200,7 +198,6 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                     const change = (v: ChangeEvent<HTMLTextAreaElement>) => {
                         const newDistractors = [...distractors];
                         newDistractors[index] = v.currentTarget.value;
-                        console.log(newDistractors);
                         setDistractors(newDistractors);
                     };
                     return (<Flex key={index} direction="row" align="center" gap="md">
