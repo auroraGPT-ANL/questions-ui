@@ -42,7 +42,7 @@ export function HeaderSimple({author} : HeaderProps) {
 export function QuestionsInstructions() {
         //TODO pleease ensure that this list of instructions is full and complete
         return (<div>
-            <Text>Thank you for agreeing to help contribute questions to AuroraGPT! A few guidelines:</Text>
+            <Text>Thank you for agreeing to help contribute questions to AuroraGPT Project! A few guidelines:</Text>
             <ul>
                 <li>By contributing your questions here, you agree the data you submit in this form may be used to train and evaluate AuroraGPT and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
@@ -79,7 +79,6 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         setAuthor(e.currentTarget.value);
     }
 
-    //TODO this need to be set appropriately
     const difficulties = ['Easy (basic recall and understading)', 'Medium (application and analysis)', 'Hard (evaluation, creation, and complex problem solving)'];
     const allowedSkills = [
         'sumarization (i.e. condensing text while preserving semantic intent)',
@@ -92,9 +91,10 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         'understanding identifiers/notation (i.e. mapping an identifier to its concept/entity)',
         'understanding evolution of ideas (i.e. how do ideas/facts change over time)',
         'understanding programs (i.e. drawing conclusions from code)',
-        'understanding images (i.e. drawing conclusions from a 2d image(s))',
-        'understanding tabluar data (i.e. drawing conclusions from a table(s))',
-        'understanding data (i.e. drawing conclusions from tabluar data)',
+//        TODO uncomment these when we add support for imges and multi-modal question submission
+//        'understanding images (i.e. drawing conclusions from a 2d image(s))',
+//        'understanding tabluar data (i.e. drawing conclusions from a table(s))',
+//        'understanding data (i.e. drawing conclusions from tabluar data)',
         'understanding equations (i.e. drawing conclusions from an equation)',
         'understanding units and numbers (i.e. understand relative values/units)',
         'assessing quality and uncertainty (i.e. identifying data quality issues)',
@@ -109,10 +109,8 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const [skills, setSkills] = useState<string[]>([]);
     const [domains, setDomains] = useState<string[]>([]);
 
-    //TODO disable testing/submissions if the distractors, correct answer, question are empty
     const [distractors, setDistractors] = useState<string[]>(["", "", "", ""]);
 
-    //TODO actually validate that the provided DOI is a real DOI
     const [doi, setDOI] = useState("");
 
     const [support, setSupport] = useState("");
@@ -173,7 +171,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const testQuestion = async () => {
         const testing = notifications.show({title: 'testing question', message: 'please wait', autoClose: false});
         try {
-            const response = await fetch(import.meta.env.BASE_URL + '/api/test_question', {
+            const response = await fetch(import.meta.env.BASE_URL + '../api/test_question', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -212,7 +210,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const submitQuestion = async () => {
         const submitting = notifications.show({title: 'submitting question', message: 'please wait', autoClose: false});
         try {
-            const response = await fetch(import.meta.env.BASE_URL + '/api/question', {
+            const response = await fetch(import.meta.env.BASE_URL + '../api/question', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
