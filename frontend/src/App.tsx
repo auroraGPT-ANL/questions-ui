@@ -32,7 +32,7 @@ export function HeaderSimple({author} : HeaderProps) {
   return (
     <header className={classes.header}>
       <Container size="md" className={classes.inner}>
-        <h1>AuroraGPT Questions</h1>
+        <h1>AuroraGPT Multi-choice Question Generation Interface</h1>
         <p>Authoring As: {author}</p>
       </Container>
     </header>
