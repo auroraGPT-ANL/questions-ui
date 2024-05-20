@@ -34,24 +34,25 @@ export function HeaderSimple({author} : HeaderProps) {
       <Container size="md" className={classes.inner}>
         <h1>AuroraGPT Question Generation Interface</h1>
         <p>Authoring As: {author}</p>
+        <a href="mailto:agptquestionsform@lists.cels.anl.gov">Support</a>
       </Container>
     </header>
   );
 }
 
 export function QuestionsInstructions() {
-        //TODO pleease ensure that this list of instructions is full and complete
+        //TODO please ensure that this list of instructions is full and complete
         return (<div>
             <Text>Thank you for agreeing to help contribute questions to AuroraGPT Project! A few guidelines:</Text>
             <ul>
-                <li>By contributing your questions here, you agree the data you submit in this form may be used to train and evaluate AuroraGPT and you are allowed to make these contributions.</li>
+                <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AuroraGPT and other tasks as needed, and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
-                <li>Your question must be a multiple choice question with only 1 correct answer.  These are the easiest to evaluate</li>
-                <li>Your question should be appropriate for an first year graduate level student</li>
-                <li>Your question should avoid controversial on undecided questions in your field</li>
+                <li>Your question must be a multiple choice question with only 1 correct answer.  These are the easiest to evaluate.</li>
+                <li>Your question should be appropriate for a first year graduate-level student</li>
+                <li>Your question should avoid controversial or undecided questions in your field</li>
                 <li>Your question should avoid calculations; this is an area where current LLMs struggle, and will be assessed separately</li>
                 <li>For now avoid questions that require interpretation of figures or tables as our ability extract these is limited</li>
-                <li>Before you will be able to submit, you will need to test your questions against state of the art LLMs.  To test your question, please use the Test button below and avoid using 3rd party systems to avoid benchmark leakage</li>
+                <li>Before you will be able to submit, you will need to test your questions against various LLMs using the Test feature below.  <strong>Please avoid using 3rd party LLMs or other systems to test your question to avoid benchmark leakage</strong></li>
                 <li>Your answer to question should be addressed unambiguously in a published paper</li>
             </ul>
         </div>);
@@ -81,6 +82,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
 
     const difficulties = ['Easy (basic recall and understading)', 'Medium (application and analysis)', 'Hard (evaluation, creation, and complex problem solving)'];
     const allowedSkills = [
+        'basic comprehension (i.e. retriving information using textual context clues)',
         'sumarization (i.e. condensing text while preserving semantic intent)',
         'generalization (i.e. how can concept be mapped to its more general concept)',
         'interpolation/extrapolation (i.e. fill in the middle or end of a trend/sequence)',
@@ -169,7 +171,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     }, [distractors, correctAnswer, question, skills, difficulty, doi, author]);
 
     const testQuestion = async () => {
-        const testing = notifications.show({title: 'testing question', message: 'please wait', autoClose: false});
+        const testing = notifications.show({title: 'testing question', message: 'please wait upto 5 minutes for cold starts', autoClose: false});
         try {
             const response = await fetch(import.meta.env.BASE_URL + '../api/test_question', {
                 method: "POST",
