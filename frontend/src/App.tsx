@@ -1,9 +1,10 @@
 import { ChangeEvent, useState, useMemo } from 'react';
-import { MantineProvider, Container, TextInput, Text, Button, Autocomplete, MultiSelect, Flex, Textarea, em, Grid, Table, Alert} from '@mantine/core';
+import { MantineProvider, Container, TextInput, Text, Button, Autocomplete, MultiSelect, Flex, Textarea, em, Grid, Table, Alert, Card} from '@mantine/core';
 import { notifications, Notifications } from '@mantine/notifications';
 import { theme } from "./theme";
 import '@mantine/core/styles.css';
 import classes from './HeaderSimple.module.css';
+import { Tooltip } from '@mantine/core';
 
 interface Result {
     model: string;
@@ -47,6 +48,7 @@ export function QuestionsInstructions() {
             <ul>
                 <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AuroraGPT and other tasks as needed, and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
+                <li>Your question must be based on a research paper published in one of the following databases or repositories: OSTI, peS20, ArXiV, Dolma, RP1, BioXiV, ChemXiv, MedXiV, PubMed Central, NIH Lit Archive, or ACM (from the years 1990 to 2017). Please be prepared to provide the DOI or XiV ID of the paper as a reference when submitting your question.</li>
                 <li>Your question must be a multiple choice question with only 1 correct answer.  These are the easiest to evaluate.</li>
                 <li>Your question should be appropriate for a first year graduate-level student</li>
                 <li>Your question should avoid controversial or undecided questions in your field</li>
@@ -161,7 +163,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         }
         if (doi.length < 1) {
             disabled = disabled || true;
-            reasons.push("A DOI or XiV id is required");
+            reasons.push("A reference DOI or XiV id is required");
         }
         if (author.length === 0) {
             disabled = disabled || true;
@@ -265,7 +267,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         <Container>
             <QuestionsInstructions />
             <Grid>
-                <Grid.Col span={8}>
+                <Grid.Col span={12}>
                 <h1>Write Your Question</h1>
                 <Textarea required minRows={4} label="Question" placeholder="your question" value={question} onChange={ (e) => setQuestion(e.currentTarget.value)} />
                 <Textarea required minRows={4} label="Correct Answer" placeholder="the correct answer" value={correctAnswer} onChange={ (e) => setCorrectAnswer(e.currentTarget.value) }/>
@@ -287,30 +289,58 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 <MultiSelect required value={skills} onChange={setSkills} label="Skills" data={allowedSkills} searchable placeholder="What skills does this require?" />
                 <MultiSelect required value={domains} onChange={setDomains} label="Domains" data={allowedDomains} searchable placeholder="What domains use this?" />
                 <Autocomplete required value={difficulty} onChange={setDifficulty} label="Difficulty" data={difficulties} />
-                <TextInput label="Reference DOI/XiV id.  You can use any paper from OSTI, peS20, ArXiV, Dolma, RP1, BioXiV, ChemXiv, MedXiV, PubMed Central, and NIH Lit Archive, and ACM from 1990-2017" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
+                <TextInput required label="Reference DOI/XiV id.  You can use any paper from OSTI, peS20, ArXiV, Dolma, RP1, BioXiV, ChemXiv, MedXiV, PubMed Central, and NIH Lit Archive, and ACM from 1990-2017" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
                 <TextInput required label="Author" placeholder="Author" defaultValue={author} onChange={authorChange} />
                 <ValidationFeedback reasons={disabledReasons} />
+                {
+                    results.length == 0 ? 
+                    <Card shadow="sm" p="lg" radius="md" withBorder>
+                        <Text size="sm">ℹ️ Please click <strong>Test</strong> to test your question</Text>
+                        <Text size="sm">ℹ️ You will get the results instantaneously in most cases, but you may occasionally need to wait for upto 5 minutes for a cold start.</Text>
+                    </Card>: <></>
+                }
                 <Button disabled={submittingDisabled} onClick={testQuestion}>Test</Button>
                 <Button disabled={(!tested || submittingDisabled)} onClick={submitQuestion}>Submit</Button>
+                
                 </Grid.Col>
-                <Grid.Col span={4}>
+            </Grid>
+            
+            { results.length == 0 ? <></>:
+            <Grid>
+                <Grid.Col span={12}>
                     <h1>Evaluation Results</h1>
-
-                    { results.length == 0 ? (<Text>Please click test to test your question</Text> ):
-                    (<Table>
+                    <Table>
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Model</Table.Th>
-                                <Table.Th>Score</Table.Th>
-                                <Table.Th>Correct</Table.Th>
+                                <Table.Th>
+                                    <Tooltip
+                                        label="The score is the probability of the model generating the correct answer."
+                                    >
+                                        <span style={{ cursor: 'default', display: 'inline-flex', alignItems: 'center' }}>
+                                            Score <span style={{ marginLeft: '4px' }}>ℹ️</span>
+                                        </span>
+                                    </Tooltip>
+                                </Table.Th>
+                                <Table.Th>
+                                    <Tooltip
+                                        label="Whether the model selects the correct answer."
+                                    >
+                                        <span style={{ cursor: 'default', display: 'inline-flex', alignItems: 'center' }}>
+                                            Correct <span style={{ marginLeft: '4px' }}>ℹ️</span>
+                                        </span>
+                                    </Tooltip>
+                                </Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>{result_rows}</Table.Tbody>
-                    </Table>)}
+                    </Table>
                 </Grid.Col>
             </Grid>
+            }
+            
         </Container>
     );
 }
