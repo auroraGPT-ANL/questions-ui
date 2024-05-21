@@ -161,7 +161,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         }
         if (doi.length < 1) {
             disabled = disabled || true;
-            reasons.push("A DOI or ArXiV id is required");
+            reasons.push("A DOI or XiV id is required");
         }
         if (author.length === 0) {
             disabled = disabled || true;
@@ -287,7 +287,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 <MultiSelect required value={skills} onChange={setSkills} label="Skills" data={allowedSkills} searchable placeholder="What skills does this require?" />
                 <MultiSelect required value={domains} onChange={setDomains} label="Domains" data={allowedDomains} searchable placeholder="What domains use this?" />
                 <Autocomplete required value={difficulty} onChange={setDifficulty} label="Difficulty" data={difficulties} />
-                <TextInput label="Reference DOI/ArXiV id.  You can use any paper from ArXiV or ACM from 1990-2017" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
+                <TextInput label="Reference DOI/XiV id.  You can use any paper from OSTI, peS20, ArXiV, Dolma, RP1, BioXiV, ChemXiv, MedXiV, PubMed Central, and NIH Lit Archive, and ACM from 1990-2017" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
                 <TextInput required label="Author" placeholder="Author" defaultValue={author} onChange={authorChange} />
