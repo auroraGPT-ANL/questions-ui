@@ -66,9 +66,9 @@ interface ValidationFeedbackProps {
 export function ValidationFeedback({reasons}: ValidationFeedbackProps) {
     if (reasons.length === 0) return <></>;
 
-    return <Alert variant="light" color="orange" title="Validation Errors" icon="&#9888;">
+    return <Alert variant="light" color="orange" title="Please fix these before testing" icon="&#9888;">
             <ul>
-                {reasons.map((x) => <li>{x}</li>)}
+                {reasons.map((x) => <li key={x}>{x}</li>)}
             </ul>
         </Alert>;
 }
@@ -107,18 +107,57 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     ];
     const allowedDomains = ['physics', 'material science', 'biology', 'chemistry', 'computer science'];
 
-    const [question, setQuestion] = useState('');
-    const [correctAnswer, setCorrectAnswer] = useState('');
-    const [difficulty, setDifficulty] = useState(difficulties[0]);
-    const [skills, setSkills] = useState<string[]>([]);
-    const [domains, setDomains] = useState<string[]>([]);
+    const [edited, setEdited] = useState(false);
+    const [question, setQuestionImpl] = useState('');
+    const setQuestion = (value: string) => {
+        setEdited(true);
+        setQuestionImpl(value);
+    };
+    const [correctAnswer, setCorrectAnswerImpl] = useState('');
+    const setCorrectAnswer = (value: string) => {
+        setEdited(true);
+        setCorrectAnswerImpl(value);
+    };
+    const [difficulty, setDifficultyImpl] = useState(difficulties[0]);
+    const setDifficulty = (value: string) => {
+        setEdited(true);
+        setDifficultyImpl(value);
+    };
+    const [skills, setSkillsImpl] = useState<string[]>([]);
+    const setSkills = (value: string[]) => {
+        setEdited(true);
+        setSkillsImpl(value);
+    };
+    const [domains, setDomainsImpl] = useState<string[]>([]);
+    const setDomains = (value: string[]) => {
+        setEdited(true);
+        setDomainsImpl(value);
+    };
 
-    const [distractors, setDistractors] = useState<string[]>(["", "", "", ""]);
+    const [distractors, setDistractorsImpl] = useState<string[]>(["", "", "", ""]);
+    const setDistractors = (value: string[]) => {
+        setEdited(true);
+        setDistractorsImpl(value);
+    };
 
-    const [doi, setDOI] = useState("");
+    const [doi, setDOIImpl] = useState("");
+    const setDOI = (value: string) => {
+        setEdited(true);
+        setDOIImpl(value);
+    };
 
-    const [support, setSupport] = useState("");
-    const [comments, setComments] = useState("");
+    const [support, setSupportImpl] = useState("");
+    const setSupport = (value: string) => {
+        setEdited(true);
+        setSupportImpl(value);
+        
+    }
+    const [comments, setCommentsImpl] = useState("");
+    const setComments = (value: string) => {
+        setEdited(true);
+        setCommentsImpl(value);
+        
+    }
     const [results, setResults] = useState<Result[]>([]);
     const [tested, setTested] = useState(false);
 
@@ -244,6 +283,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             setSupport('')
             setResults([]);
             setTested(false);
+            setEdited(false);
             }
         catch (error) {
             notifications.hide(submitting);
@@ -289,9 +329,10 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
                 <TextInput required label="Author" placeholder="Author" defaultValue={author} onChange={authorChange} />
-                <ValidationFeedback reasons={disabledReasons} />
+
+                { edited ? <ValidationFeedback reasons={disabledReasons} /> : <></> }
                 {
-                    results.length == 0 ? 
+                    (results.length == 0) ? 
                     <Card shadow="sm" p="lg" radius="md" withBorder>
                         <Text size="sm">ℹ️ Please click <strong>Test</strong> to test your question</Text>
                         <Text size="sm">ℹ️ You will get the results instantaneously in most cases, but you may occasionally need to wait for upto 5 minutes for a cold start.</Text>
