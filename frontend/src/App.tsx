@@ -171,7 +171,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const testQuestion = async () => {
         const testing = notifications.show({title: 'testing question', message: 'please wait upto 5 minutes for cold starts', autoClose: false});
         try {
-            const response = await fetch(import.meta.env.BASE_URL + '/../api/test_question', {
+            const response = await fetch(import.meta.env.BASE_URL + '../api/test_question', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -210,7 +210,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const submitQuestion = async () => {
         const submitting = notifications.show({title: 'submitting question', message: 'please wait', autoClose: false});
         try {
-            const response = await fetch(import.meta.env.BASE_URL + '/../api/question', {
+            const response = await fetch(import.meta.env.BASE_URL + '../api/question', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
