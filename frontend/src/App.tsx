@@ -282,6 +282,9 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             setComments('')
             setSupport('')
             setResults([]);
+            setSkills([]);
+            setDomains([]);
+            setDifficulty(difficulties[0]);
             setTested(false);
             setEdited(false);
             }
