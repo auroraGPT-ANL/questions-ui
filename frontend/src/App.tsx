@@ -1,8 +1,9 @@
 import { ChangeEvent, useState, useMemo } from 'react';
-import { MantineProvider, Container, TextInput, Text, Button, Autocomplete, MultiSelect, Flex, Textarea, em, Grid, Table, Alert, Card} from '@mantine/core';
+import { MantineProvider, Container, TextInput, Text, Button, NativeSelect, MultiSelect, Flex, Textarea, em, Grid, Table, Alert, Card} from '@mantine/core';
 import { notifications, Notifications } from '@mantine/notifications';
 import { theme } from "./theme";
 import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
 import classes from './HeaderSimple.module.css';
 import { Tooltip } from '@mantine/core';
 
@@ -20,7 +21,6 @@ export default function App() {
   return <MantineProvider theme={theme}>
     <HeaderSimple author={author}/>
     <QuestionsForm author={author} setAuthor={setAuthor} />
-    <Notifications />
   </MantineProvider>;
 }
 
@@ -109,7 +109,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
 
     const [question, setQuestion] = useState('');
     const [correctAnswer, setCorrectAnswer] = useState('');
-    const [difficulty, setDifficulty] = useState('');
+    const [difficulty, setDifficulty] = useState(difficulties[0]);
     const [skills, setSkills] = useState<string[]>([]);
     const [domains, setDomains] = useState<string[]>([]);
 
@@ -153,10 +153,6 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             disabled = disabled || true;
             reasons.push("all choices (distractors+correct answer) must be unique");
         }
-        if (difficulty.length === 0) {
-            disabled = disabled || true;
-            reasons.push("the difficulty must be set");
-        }
         if (skills.length < 1) {
             disabled = disabled || true;
             reasons.push("at least one skill is required");
@@ -175,7 +171,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const testQuestion = async () => {
         const testing = notifications.show({title: 'testing question', message: 'please wait upto 5 minutes for cold starts', autoClose: false});
         try {
-            const response = await fetch(import.meta.env.BASE_URL + '../api/test_question', {
+            const response = await fetch(import.meta.env.BASE_URL + '/../api/test_question', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -214,7 +210,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const submitQuestion = async () => {
         const submitting = notifications.show({title: 'submitting question', message: 'please wait', autoClose: false});
         try {
-            const response = await fetch(import.meta.env.BASE_URL + '../api/question', {
+            const response = await fetch(import.meta.env.BASE_URL + '/../api/question', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -238,7 +234,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 throw new Error(response.statusText);
             }
             notifications.hide(submitting);
-            notifications.show({title: 'submitted question', message: `submitted your question: ${question}`});
+            notifications.show({title: 'submitted question', message: `successfully submitted your question: ${question}`, autoClose: 10000});
 
             setQuestion('');
             setCorrectAnswer('');
@@ -288,7 +284,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 <Button onClick={addDistractor}>Add Incorrect Answer</Button>
                 <MultiSelect required value={skills} onChange={setSkills} label="Skills" data={allowedSkills} searchable placeholder="What skills does this require?" />
                 <MultiSelect required value={domains} onChange={setDomains} label="Domains" data={allowedDomains} searchable placeholder="What domains use this?" />
-                <Autocomplete required value={difficulty} onChange={setDifficulty} label="Difficulty" data={difficulties} />
+                <NativeSelect required value={difficulty} onChange={(e) => setDifficulty(e.currentTarget.value)} label="Difficulty" data={difficulties} />
                 <TextInput required label="Reference DOI/XiV id.  You can use any paper from OSTI, peS20, ArXiV, Dolma, RP1, BioXiV, ChemXiv, MedXiV, PubMed Central, and NIH Lit Archive, and ACM from 1990-2017" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
@@ -301,9 +297,9 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                         <Text size="sm">ℹ️ You will get the results instantaneously in most cases, but you may occasionally need to wait for upto 5 minutes for a cold start.</Text>
                     </Card>: <></>
                 }
+                <Notifications position="bottom-center" />
                 <Button disabled={submittingDisabled} onClick={testQuestion}>Test</Button>
                 <Button disabled={(!tested || submittingDisabled)} onClick={submitQuestion}>Submit</Button>
-                
                 </Grid.Col>
             </Grid>
             
