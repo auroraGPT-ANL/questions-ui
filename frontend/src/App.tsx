@@ -118,10 +118,11 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         setEdited(true);
         setCorrectAnswerImpl(value);
     };
-    const [difficulty, setDifficultyImpl] = useState(difficulties[0]);
+    const [difficulty, setDifficultyImpl] = useState('');
     const setDifficulty = (value: string) => {
         setEdited(true);
         setDifficultyImpl(value);
+        console.log(value);
     };
     const [skills, setSkillsImpl] = useState<string[]>([]);
     const setSkills = (value: string[]) => {
@@ -195,6 +196,10 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         if (skills.length < 1) {
             disabled = disabled || true;
             reasons.push("at least one skill is required");
+        }
+        if (difficulty.length === 0) {
+            disabled = disabled || true;
+            reasons.push("Difficulty is required");
         }
         if (doi.length < 1) {
             disabled = disabled || true;
@@ -284,7 +289,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             setResults([]);
             setSkills([]);
             setDomains([]);
-            setDifficulty(difficulties[0]);
+            setDifficulty('');
             setTested(false);
             setEdited(false);
             }
@@ -327,7 +332,36 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 <Button onClick={addDistractor}>Add Incorrect Answer</Button>
                 <MultiSelect required value={skills} onChange={setSkills} label="Skills" data={allowedSkills} searchable placeholder="What skills does this require?" />
                 <MultiSelect required value={domains} onChange={setDomains} label="Domains" data={allowedDomains} searchable placeholder="What domains use this?" />
-                <NativeSelect required value={difficulty} onChange={(e) => setDifficulty(e.currentTarget.value)} label="Difficulty" data={difficulties} />
+                <NativeSelect
+                    required
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.currentTarget.value)}
+                    label="Difficulty"
+                    data={
+                        difficulty ? 
+                        difficulties.map(diff => ({ value: diff, label: diff })) : 
+                        [
+                            { value: '', label: 'Select difficulty', disabled: true }, 
+                            ...difficulties.map(diff => ({ value: diff, label: diff }))
+                        ]
+                    }
+                    styles={() => ({
+                        input: {
+                          color: difficulty ? 'black' : 'rgb(173, 181, 189)',
+                          '&:not(:focus):invalid': {
+                            color: 'rgb(173, 181, 189)' 
+                          }
+                        },
+                        item: {
+                          '&[data-disabled]': {
+                            color: 'rgb(173, 181, 189)', 
+                          },
+                          '&:not([data-disabled])': {
+                            color: 'black',
+                          }
+                        }
+                    })}
+                />
                 <TextInput required label="Reference DOI/XiV id.  You can use any paper from OSTI, peS20, ArXiV, Dolma, RP1, BioXiV, ChemXiv, MedXiV, PubMed Central, and NIH Lit Archive, and ACM from 1990-2017" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
