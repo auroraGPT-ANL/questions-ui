@@ -49,13 +49,13 @@ export function QuestionsInstructions() {
                 <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AuroraGPT and other tasks as needed, and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
                 <li>Your question must be based on a research paper published in one of the following databases or repositories: OSTI, peS20, ArXiV, Dolma, RP1, BioXiV, ChemXiv, MedXiV, PubMed Central, NIH Lit Archive, or ACM (from the years 1990 to 2017). Please be prepared to provide the DOI or XiV ID of the paper as a reference when submitting your question.</li>
-                <li>Your question must be a multiple choice question with only 1 correct answer.  These are the easiest to evaluate.</li>
-                <li>Your question should be appropriate for a first year graduate-level student</li>
-                <li>Your question should avoid controversial or undecided questions in your field</li>
-                <li>Your question should avoid calculations; this is an area where current LLMs struggle, and will be assessed separately</li>
-                <li>For now avoid questions that require interpretation of figures or tables as our ability extract these is limited</li>
-                <li>Before you will be able to submit, you will need to test your questions against various LLMs using the Test feature below.  <strong>Please avoid using 3rd party LLMs or other systems to test your question to avoid benchmark leakage</strong></li>
-                <li>Your answer to question should be addressed unambiguously in a published paper</li>
+                <li>Your question must be a multiple-choice question with only 1 correct answer. These are the easiest to evaluate.</li>
+                <li>Your question should be appropriate for a first-year graduate-level student.</li>
+                <li>Your question should avoid controversial or undecided questions in your field.</li>
+                <li>Your question should avoid calculations; this is an area where current LLMs struggle, and will be assessed separately.</li>
+                <li>For now avoid questions that require interpretation of figures or tables as our ability to extract these is limited.</li>
+                <li>Before you will be able to submit, you will need to test your questions against various LLMs using the Test feature below. <strong>Please avoid using 3rd party LLMs or other systems to test your question to avoid benchmark leakage</strong>.</li>
+                <li>Your answer to the question should be addressed unambiguously in a published paper.</li>
             </ul>
         </div>);
 }
@@ -384,7 +384,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             { results.length == 0 ? <></>:
             <Grid>
                 <Grid.Col span={12}>
-                    <h1>Evaluation Results</h1>
+                    <h1>Evaluation Results (does not evaluate AuroraGPT)</h1>
                     <Table>
                         <Table.Thead>
                             <Table.Tr>
