@@ -48,7 +48,7 @@ export function QuestionsInstructions() {
             <ul>
                 <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AuroraGPT and other tasks as needed, and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
-                <li>Your question must be based on a research paper published in one of the following databases or repositories: OSTI, peS20, ArXiV, Dolma, RP1, BioXiV, ChemXiv, MedXiV, PubMed Central, NIH Lit Archive, or ACM (from the years 1990 to 2017). Please be prepared to provide the DOI or XiV ID of the paper as a reference when submitting your question.</li>
+                <li>Please be prepared to provide the DOI or XiV ID of the paper as a reference when submitting your question.</li>
                 <li>Your question must be a multiple-choice question with only 1 correct answer. These are the easiest to evaluate.</li>
                 <li>Your question should be appropriate for a first-year graduate-level student.</li>
                 <li>Your question should avoid controversial or undecided questions in your field.</li>
@@ -362,7 +362,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                         }
                     })}
                 />
-                <TextInput required label="Reference DOI/XiV id.  You can use any paper from OSTI, peS20, ArXiV, Dolma, RP1, BioXiV, ChemXiv, MedXiV, PubMed Central, and NIH Lit Archive, and ACM from 1990-2017" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
+                <TextInput required label="Reference DOI/XiV id" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
                 <TextInput required label="Author" placeholder="Author" defaultValue={author} onChange={authorChange} />
