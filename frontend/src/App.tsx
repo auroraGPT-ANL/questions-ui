@@ -373,6 +373,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                     <Card shadow="sm" p="lg" radius="md" withBorder>
                         <Text size="sm">ℹ️ Please click <strong>Test</strong> to test your question</Text>
                         <Text size="sm">ℹ️ You will get the results instantaneously in most cases, but you may occasionally need to wait for upto 5 minutes for a cold start.</Text>
+                        <Text size="sm">ℹ️ Please click <strong>Submit</strong> after you <strong>Test</strong> your question and believe your question is ready for submission</Text>
                     </Card>: <></>
                 }
                 <Notifications position="bottom-center" />
