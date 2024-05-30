@@ -21,8 +21,9 @@ BACKEND_READY = True # Set to True when the LLM API is ready for requests.
 LLM_API_BASE_URL = "http://140.221.70.43:5005/llm/v1" # Replace it.
 ASYNC_LLM_CLIENT = AsyncOpenAI(base_url=LLM_API_BASE_URL, api_key='EMPTY')
 MODEL_NAME_MAP = {
-    "llama2:7b": "meta-llama/Llama-2-7b-hf",
-    "mistral:7b": "mistralai/Mistral-7B-v0.1",
+    "Llama2-7B": "meta-llama/Llama-2-7b-hf",
+    "Mistral-7B": "mistralai/Mistral-7B-v0.1",
+    "Llama3-8B": "meta-llama/Meta-Llama-3-8B",
 }
 
 skills_to_questions = Table("skills_to_questions",
@@ -258,6 +259,6 @@ async def test_question_impl(
 async def test_question(question: CreateQuestionSchema):
     results: list[Tuple[str, asyncio.Task[Tuple[bool, float]]]] = []
     async with asyncio.TaskGroup() as tg:
-        for model in ["llama2:7b", "mistral:7b"]:
+        for model in ["Llama2-7B", "Mistral-7B", "Llama3-8B"]:
             results.append((model, tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors))))
     return [QuestionEvalSchema(model=m, score=t.result()[1], correct=t.result()[0]) for (m,t) in results]
