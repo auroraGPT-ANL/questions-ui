@@ -1,5 +1,5 @@
 import { ChangeEvent, useState, useMemo } from 'react';
-import { MantineProvider, Container, TextInput, Text, Button, NativeSelect, MultiSelect, Flex, Textarea, em, Grid, Table, Alert, Card} from '@mantine/core';
+import { MantineProvider, Container, TextInput, Text, Button, NativeSelect, MultiSelect, Flex, Textarea, em, Grid, Table, Alert, Card, Switch, Group } from '@mantine/core';
 import { notifications, Notifications } from '@mantine/notifications';
 import { theme } from "./theme";
 import '@mantine/core/styles.css';
@@ -11,6 +11,8 @@ interface Result {
     model: string;
     score: number;
     correct: boolean;
+    corectlogprobs: string;
+    incorrectlogprobs: string;
 };
 
 export default function App() {
@@ -48,7 +50,7 @@ export function QuestionsInstructions() {
             <ul>
                 <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AuroraGPT and other tasks as needed, and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
-                <li>Please be prepared to provide the DOI or XiV ID of the paper as a reference when submitting your question.</li>
+                <li>Your answer to the question should be referenced with a published paper or a scientific textbook. Please be prepared to provide the DOI or XiV ID of the paper or the ISBN of the book as a reference when submitting your question.</li>
                 <li>Your question must be a multiple-choice question with only 1 correct answer. These are the easiest to evaluate.</li>
                 <li>Your question should be appropriate for a first-year graduate-level student.</li>
                 <li>Your question should avoid controversial or undecided questions in your field.</li>
@@ -162,6 +164,12 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const [results, setResults] = useState<Result[]>([]);
     const [tested, setTested] = useState(false);
 
+    const [showlogprob, setShowlogprobImpl] = useState(false);
+    const setShowlogprob = (event: any) => {
+        setShowlogprobImpl(event.currentTarget.checked);
+        console.log(event.currentTarget.checked);
+    };
+
     const addDistractor = () => {
         const newDistractors = [...distractors];
         newDistractors.push("");
@@ -203,7 +211,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         }
         if (doi.length < 1) {
             disabled = disabled || true;
-            reasons.push("A reference DOI or XiV id is required");
+            reasons.push("A reference ISBN, DOI, or XiV ID is required");
         }
         if (author.length === 0) {
             disabled = disabled || true;
@@ -307,6 +315,16 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         </Table.Tr>
     ));
 
+    const result_rows_full = results.map(e => (
+        <Table.Tr key={e.model}>
+            <Table.Td>{e.model}</Table.Td>
+            <Table.Td>{e.score}</Table.Td>
+            <Table.Td>{e.correct.toString()}</Table.Td>
+            <Table.Td>{e.corectlogprobs}</Table.Td>
+            <Table.Td>{e.incorrectlogprobs}</Table.Td>
+        </Table.Tr>
+    ));
+
     return (
         <Container>
             <QuestionsInstructions />
@@ -362,7 +380,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                         }
                     })}
                 />
-                <TextInput required label="Reference DOI/XiV id" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
+                <TextInput required label="Reference ISBN, DOI, or XiV ID" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
                 <TextInput required label="Author" placeholder="Author" defaultValue={author} onChange={authorChange} />
@@ -386,6 +404,15 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             <Grid>
                 <Grid.Col span={12}>
                     <h1>Evaluation Results (does not evaluate AuroraGPT)</h1>
+                    <Group justify="right" p="md">
+                        <Switch
+                            checked={showlogprob}
+                            onChange={setShowlogprob}
+                            size="sm" 
+                            color="blue" 
+                            label="Show Log Probabilities"
+                        />
+                    </Group>
                     <Table>
                         <Table.Thead>
                             <Table.Tr>
@@ -408,9 +435,14 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                                         </span>
                                     </Tooltip>
                                 </Table.Th>
+                                {showlogprob ? <Table.Th>Correct Log Prob</Table.Th> : <></>}
+                                {showlogprob ? <Table.Th>Incorrect Log Prob</Table.Th> : <></>}
                             </Table.Tr>
                         </Table.Thead>
-                        <Table.Tbody>{result_rows}</Table.Tbody>
+                        {
+                            showlogprob ? <Table.Tbody>{result_rows_full}</Table.Tbody> :
+                            <Table.Tbody>{result_rows}</Table.Tbody>
+                        }
                     </Table>
                 </Grid.Col>
             </Grid>

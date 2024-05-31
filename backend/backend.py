@@ -113,6 +113,8 @@ class QuestionEvalSchema(BaseModel):
     model: str
     score: float
     correct: bool
+    corectlogprobs: str
+    incorrectlogprobs: str
     class Config:
         from_attributes = True
 
@@ -250,10 +252,12 @@ async def test_question_impl(
 
         answer_correctly = correct_loglikelihood > max(incorrect_loglikelihoods)
         score = math.exp(correct_loglikelihood) / (sum([math.exp(loglikelihood) for loglikelihood in incorrect_loglikelihoods]) + math.exp(correct_loglikelihood))
+        correct_log_str = f'{correct_loglikelihood:.2f}'
+        incorrect_logs_str = ",".join([f'{loglikelihood:.2f}' for loglikelihood in incorrect_loglikelihoods])
 
-        return answer_correctly, score
+        return answer_correctly, score, correct_log_str, incorrect_logs_str
     else:
-        return False, 0.0
+        return False, 0.0, "", ""
 
 @app.post("/api/test_question", response_model=list[QuestionEvalSchema])
 async def test_question(question: CreateQuestionSchema):
@@ -261,4 +265,4 @@ async def test_question(question: CreateQuestionSchema):
     async with asyncio.TaskGroup() as tg:
         for model in ["Llama2-7B", "Mistral-7B", "Llama3-8B"]:
             results.append((model, tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors))))
-    return [QuestionEvalSchema(model=m, score=t.result()[1], correct=t.result()[0]) for (m,t) in results]
+    return [QuestionEvalSchema(model=m, score=t.result()[1], correct=t.result()[0], corectlogprobs=t.result()[2], incorrectlogprobs=t.result()[3]) for (m,t) in results]
