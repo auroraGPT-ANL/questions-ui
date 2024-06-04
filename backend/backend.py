@@ -53,6 +53,20 @@ class Question(Base):
     domains: Mapped[List["Domain"]] = relationship(secondary=domains_to_questions)
     author_id: Mapped[int] = mapped_column(ForeignKey("author.id"))
     author: Mapped["Author"] = relationship()
+    position_id: Mapped[int] = mapped_column(ForeignKey("position.id"))
+    position: Mapped["Position"] = relationship()
+    affiliation_id: Mapped[int] = mapped_column(ForeignKey("affiliation.id"))
+    affiliation: Mapped["Affiliation"] = relationship()
+
+class Position(Base):
+    __tablename__ = "position"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True)
+    
+class Affiliation(Base):
+    __tablename__ = "affiliation"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True)
 
 class Distractor(Base):
     __tablename__ = "distractor"
@@ -91,6 +105,8 @@ class CreateQuestionSchema(BaseModel):
     difficulty: str
     doi: str
     author: str
+    position: str
+    affiliation: str
     support: str = ""
     comments: str = ""
     class Config:
@@ -105,6 +121,8 @@ class QuestionSchema(BaseModel):
     difficulty: str
     doi: str
     author: str
+    position: str = ""
+    affiliation: str = ""
     support: str = ""
     comments: str = ""
     class Config:
@@ -138,7 +156,9 @@ def create_question(db: Session, question: CreateQuestionSchema):
         doi=question.doi,
         support=question.support,
         comments=question.comments,
-        author=insert_or_select(db, Author, question.author)
+        author=insert_or_select(db, Author, question.author),
+        position=insert_or_select(db, Position, question.position),
+        affiliation=insert_or_select(db, Affiliation, question.affiliation)
     )
     db.add(db_question)
     db.commit()
@@ -183,6 +203,8 @@ def store_question(question: CreateQuestionSchema, db: Session = Depends(get_db)
             author=q.author.name,
             support=q.support,
             comments=q.comments,
+            affiliation=q.affiliation.name if q.affiliation else "",
+            position=q.position.name if q.position else "",
             )
 
 @app.get("/api/question", response_model=list[QuestionSchema])
@@ -199,6 +221,8 @@ def get_questions(db: Session = Depends(get_db), skip:int=0, limit:int=100, q:Op
                 author=q.author.name,
                 support=q.support,
                 comments=q.comments,
+                affiliation=q.affiliation.name if q.affiliation else "",
+                position=q.position.name if q.position else "",
             )
             for q in list_questions(db, skip, limit, query=q)]
 

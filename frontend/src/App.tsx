@@ -85,6 +85,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     }
 
     const difficulties = ['Easy (basic recall and understading)', 'Medium (application and analysis)', 'Hard (evaluation, creation, and complex problem solving)'];
+    const allowedPositions = ['Student', 'Early Career', 'Mid Career', 'Leader'];
     const allowedSkills = [
         'basic comprehension (i.e. retriving information using textual context clues)',
         'sumarization (i.e. condensing text while preserving semantic intent)',
@@ -124,6 +125,17 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const setDifficulty = (value: string) => {
         setEdited(true);
         setDifficultyImpl(value);
+    };
+    const [position, setPositionImpl] = useState('');
+    const setPosition = (value: string) => {
+        setEdited(true);
+        setPositionImpl(value);
+        console.log(value);
+    };
+    const [affiliation, setAffiliationImpl] = useState('');
+    const setAffiliation = (value: string) => {
+        setEdited(true);
+        setAffiliationImpl(value);
         console.log(value);
     };
     const [skills, setSkillsImpl] = useState<string[]>([]);
@@ -217,8 +229,16 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             disabled = disabled || true;
             reasons.push("Author is required");
         }
+        if (affiliation.length === 0) {
+            disabled = disabled || true;
+            reasons.push("Affiliation is required");
+        }
+        if (position.length === 0) {
+            disabled = disabled || true;
+            reasons.push("Position is required");
+        }
         return [disabled, reasons];
-    }, [distractors, correctAnswer, question, skills, difficulty, doi, author]);
+    }, [distractors, correctAnswer, question, skills, difficulty, doi, author, affiliation, position]);
 
     const testQuestion = async () => {
         const testing = notifications.show({title: 'testing question', message: 'please wait upto 5 minutes for cold starts', autoClose: false});
@@ -240,6 +260,8 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                         support: support,
                         comments: comments,
                         author: author,
+                        affiliation: affiliation,
+                        position: position
                     }
                 )
             });
@@ -279,6 +301,8 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                         support: support,
                         comments: comments,
                         author: author,
+                        affiliation: affiliation,
+                        position: position
                     }
                 )
             });
@@ -384,6 +408,38 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
                 <TextInput required label="Author" placeholder="Author" defaultValue={author} onChange={authorChange} />
+                <TextInput required label="Affiliation" placeholder="Affiliation" value={affiliation} onChange={(e) => setAffiliation(e.currentTarget.value)}/>
+    
+                <NativeSelect
+                    required
+                    value={position}
+                    onChange={(e) => setPosition(e.currentTarget.value)}
+                    label="Position"
+                    data={
+                        position ? 
+                        allowedPositions.map(pos => ({ value: pos, label: pos })) : 
+                        [
+                            { value: '', label: 'Select position', disabled: true }, 
+                            ...allowedPositions.map(pos => ({ value: pos, label: pos }))
+                        ]
+                    }
+                    styles={() => ({
+                        input: {
+                          color: position ? 'black' : 'rgb(173, 181, 189)',
+                          '&:not(:focus):invalid': {
+                            color: 'rgb(173, 181, 189)' 
+                          }
+                        },
+                        item: {
+                          '&[data-disabled]': {
+                            color: 'rgb(173, 181, 189)', 
+                          },
+                          '&:not([data-disabled])': {
+                            color: 'black',
+                          }
+                        }
+                    })}
+                />
 
                 { edited ? <ValidationFeedback reasons={disabledReasons} /> : <></> }
                 {
