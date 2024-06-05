@@ -257,7 +257,7 @@ async def get_loglikelihood_async(
         logprobs=1,
     )
     token_logprobs = completion.choices[0].logprobs.token_logprobs
-    loglikelihood = sum(token_logprobs[context_num_tokens:])
+    loglikelihood = sum(token_logprobs[context_num_tokens:])/len(token_logprobs[context_num_tokens:])
     return loglikelihood
 
 async def test_question_impl(

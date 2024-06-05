@@ -491,8 +491,32 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                                         </span>
                                     </Tooltip>
                                 </Table.Th>
-                                {showlogprob ? <Table.Th>Correct Log Prob</Table.Th> : <></>}
-                                {showlogprob ? <Table.Th>Incorrect Log Prob</Table.Th> : <></>}
+                                {
+                                    showlogprob ? 
+                                    <Table.Th>
+                                        <Tooltip
+                                            label="Average log probability of the tokens in the correct answer."
+                                        >
+                                            <span style={{ cursor: 'default', display: 'inline-flex', alignItems: 'center' }}>
+                                            Correct Log Prob <span style={{ marginLeft: '4px' }}>ℹ️</span>
+                                            </span>
+                                        </Tooltip>
+                                    </Table.Th>
+                                    : <></>
+                                }
+                                {
+                                    showlogprob ? 
+                                    <Table.Th>
+                                        <Tooltip
+                                            label="Average log probability of the tokens in the incorrect answer."
+                                        >
+                                            <span style={{ cursor: 'default', display: 'inline-flex', alignItems: 'center' }}>
+                                            Incorrect Log Prob <span style={{ marginLeft: '4px' }}>ℹ️</span>
+                                            </span>
+                                        </Tooltip>
+                                    </Table.Th>
+                                    : <></>
+                                }
                             </Table.Tr>
                         </Table.Thead>
                         {
