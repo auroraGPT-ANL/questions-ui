@@ -269,9 +269,10 @@ async def test_question_impl(
     if BACKEND_READY:
         model = MODEL_NAME_MAP[model]
         correct_loglikelihood, correct_token_count = await get_loglikelihood_async(ASYNC_LLM_CLIENT, question, correct_answer, model)
-        incorrect_loglikelihoods, incorrect_token_counts = await asyncio.gather(
+        incorrect_responses = await asyncio.gather(
             *[get_loglikelihood_async(ASYNC_LLM_CLIENT, question, incorrect_answer, model) for incorrect_answer in incorrect_answers]
         )
+        incorrect_loglikelihoods, incorrect_token_counts = [r[0] for r in incorrect_responses], [r[1] for r in incorrect_responses]
         avg_token_count = (correct_token_count + sum(incorrect_token_counts)) / (len(incorrect_token_counts) + 1)
         answer_correctly = correct_loglikelihood > max(incorrect_loglikelihoods)
         score = math.exp(correct_loglikelihood*avg_token_count) / (sum([math.exp(loglikelihood*avg_token_count) for loglikelihood in incorrect_loglikelihoods]) + math.exp(correct_loglikelihood*avg_token_count))
