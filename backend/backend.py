@@ -258,7 +258,7 @@ async def get_loglikelihood_async(
     )
     token_logprobs = completion.choices[0].logprobs.token_logprobs
     loglikelihood = sum(token_logprobs[context_num_tokens:])/len(token_logprobs[context_num_tokens:])
-    return loglikelihood
+    return loglikelihood, len(token_logprobs[context_num_tokens:])
 
 async def test_question_impl(
         model: str,
@@ -268,14 +268,13 @@ async def test_question_impl(
         ) -> Tuple[bool,float]:
     if BACKEND_READY:
         model = MODEL_NAME_MAP[model]
-        correct_loglikelihood = await get_loglikelihood_async(ASYNC_LLM_CLIENT, question, correct_answer, model)
-
-        incorrect_loglikelihoods = await asyncio.gather(
+        correct_loglikelihood, correct_token_count = await get_loglikelihood_async(ASYNC_LLM_CLIENT, question, correct_answer, model)
+        incorrect_loglikelihoods, incorrect_token_counts = await asyncio.gather(
             *[get_loglikelihood_async(ASYNC_LLM_CLIENT, question, incorrect_answer, model) for incorrect_answer in incorrect_answers]
         )
-
+        avg_token_count = (correct_token_count + sum(incorrect_token_counts)) / (len(incorrect_token_counts) + 1)
         answer_correctly = correct_loglikelihood > max(incorrect_loglikelihoods)
-        score = math.exp(correct_loglikelihood) / (sum([math.exp(loglikelihood) for loglikelihood in incorrect_loglikelihoods]) + math.exp(correct_loglikelihood))
+        score = math.exp(correct_loglikelihood*avg_token_count) / (sum([math.exp(loglikelihood*avg_token_count) for loglikelihood in incorrect_loglikelihoods]) + math.exp(correct_loglikelihood*avg_token_count))
         correct_log_str = f'{correct_loglikelihood:.2f}'
         incorrect_logs_str = ",".join([f'{loglikelihood:.2f}' for loglikelihood in incorrect_loglikelihoods])
 
