@@ -5,15 +5,13 @@ function WhyContribute() {
   return (
     <Container>
     <div>
-      <h1>Why Contribute?</h1>
-      <h2>Personal benefits </h2>
-      {/* make it small bottom margin */}
-
+      {/* <h1>Why Contribute?</h1> */}
+      <h3>Personal benefits </h3>
       <h4 style={{fontStyle: 'italic', marginBottom: '-5pt'}}>Earn recognition for your contributions to the benchmark</h4>
       <p>Question authors with 20 quality MCQ contributions (for 2024) to the benchmark will be recognized in the acknowledgments of papers authored by our team on the benchmark or via public recognition systems, such as ORCID, which are used to publicly log contributions to the community.  Question authors with extensive high-quality contributions (50 for 2024) will be invited to join the team to be co-authors of papers by our team and help guide the evaluation.</p>
       <h4 style={{fontStyle: 'italic', marginBottom: '-5pt'}}>Ensure that your research topic is better supported by AI models.</h4>
       <p>Because this benchmark is intended to be used by AI model developers to improve the performance of their models, by contributing questions representing your research area, you can ensure that your scientific domain/perspectives/interests/focus are represented.</p>
-      <h2>Laboratories/Universities/Research Institution benefits</h2>
+      <h3>Laboratories/Universities/Research Institution benefits</h3>
       <h4 style={{fontStyle: 'italic', marginBottom: '-5pt'}}>Access to generated MCQs</h4>
       <p>Institutions will be able to download contributions from their researchers. Moreover, public research institutions with considerable contributions to the benchmark (500 MCQs for 2024), will be able to access the benchmark MCQs subject to the signature of an NDA.</p>
       <h4 style={{fontStyle: 'italic', marginBottom: '-5pt'}}>Access to MCQ analysis toolkit
@@ -24,8 +22,7 @@ function WhyContribute() {
       </h4>
       <p>Argonne has already developed a high-quality question authoring platform that facilitates the creation, testing, and validation of the questions to encourage high-quality submissions and is working on a first-class set of diagnostic tools to evaluate submitted questions.   Institutions with a certain number of high-quality contributors will be given priority feedback mechanisms to improve the question-authoring form and diagnostics tools.
       </p>
-      <h2>Scientific community benefits 
-      </h2>
+      <h3>Scientific community benefits</h3>
       <h4 style={{fontStyle: 'italic', marginBottom: '-5pt'}}>AI will inevitably profoundly change the research practice, perhaps much more than the Internet did
       </h4>
       <p>For that to happen AI research assistants need to be trustworthy and safe. The only way to assess these two traits is to develop evaluation methods assessing the scientific skills, integrity, and safety of AI research assistants.

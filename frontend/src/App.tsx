@@ -1,5 +1,5 @@
 import { ChangeEvent, useState, useMemo } from 'react';
-import { MantineProvider, Container, TextInput, Text, Button, NativeSelect, MultiSelect, Flex, Textarea, em, Grid, Table, Alert, Card, Switch, Group } from '@mantine/core';
+import { MantineProvider, Container, TextInput, Text, Button, NativeSelect, MultiSelect, Flex, Textarea, em, Grid, Table, Alert, Card, Switch, Group, Collapse } from '@mantine/core';
 import { notifications, Notifications } from '@mantine/notifications';
 import { theme } from "./theme";
 import '@mantine/core/styles.css';
@@ -7,7 +7,48 @@ import '@mantine/notifications/styles.css';
 import classes from './HeaderSimple.module.css';
 import { Tooltip } from '@mantine/core';
 import WhyContribute from "./WhyContribute";
-import { BrowserRouter as Router, Route, Routes, Link} from 'react-router-dom';
+import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+
+
+function DropdownButton() {
+  const [opened, setOpened] = useState(false);
+
+  const toggleOpen = () => {
+    setOpened((prev) => !prev);
+  };
+
+  return (
+    <div>
+      <Text
+        style={{
+          cursor: 'pointer',
+          fontStyle: 'italic',
+          fontWeight: 'bold',
+          color: 'black',
+        }}
+        onClick={toggleOpen}
+      >
+        {opened ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />} Why contribute?
+      </Text>
+      <Collapse in={opened}>
+        <WhyContribute />
+        <Text
+          style={{
+            cursor: 'pointer',
+            fontStyle: 'italic',
+            fontWeight: 'bold',
+            color: 'black',
+            marginTop: '1rem',
+          }}
+          onClick={toggleOpen}
+        >
+           <IconChevronUp size={16} /> Close
+        </Text>
+      </Collapse>
+    </div>
+  );
+}
+
 
 interface Result {
     model: string;
@@ -23,17 +64,9 @@ export default function App() {
   const [author, setAuthor] = useState("");
   return (
     <MantineProvider theme={theme}>
-        <Router basename={import.meta.env.BASE_URL}>
-            <Routes>
-                <Route path="/" element={
-                    <>
-                        <HeaderSimple author={author} />
-                        <QuestionsForm author={author} setAuthor={setAuthor} />
-                    </>
-                } />
-                <Route path="/why-contribute" element={<WhyContribute />} />
-            </Routes>
-        </Router>
+
+        <HeaderSimple author={author} />
+        <QuestionsForm author={author} setAuthor={setAuthor} />
     </MantineProvider>
   );
 }
@@ -60,7 +93,6 @@ export function QuestionsInstructions() {
         return (<div>
             <Text>Thank you for agreeing to help contribute questions to AuroraGPT Project! A few guidelines:</Text>
             <ul>
-                <li><Link to="/why-contribute" target="_blank" rel="noopener noreferrer">Why contribute?</Link></li>
                 <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AuroraGPT and other tasks as needed, and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
                 <li>Your answer to the question should be referenced with a published paper or a scientific textbook. Please be prepared to provide the DOI or XiV ID of the paper or the ISBN of the book as a reference when submitting your question.</li>
@@ -71,7 +103,9 @@ export function QuestionsInstructions() {
                 <li>For now avoid questions that require interpretation of figures or tables as our ability to extract these is limited.</li>
                 <li>Before you will be able to submit, you will need to test your questions against various LLMs using the Test feature below. <strong>Please avoid using 3rd party LLMs or other systems to test your question to avoid benchmark leakage</strong>.</li>
                 <li>Your answer to the question should be addressed unambiguously in a published paper.</li>
+                <li><DropdownButton /></li>
             </ul>
+            
         </div>);
 }
 
