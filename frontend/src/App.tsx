@@ -6,6 +6,8 @@ import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import classes from './HeaderSimple.module.css';
 import { Tooltip } from '@mantine/core';
+import WhyContribute from "./WhyContribute";
+import { BrowserRouter as Router, Route, Routes, Link} from 'react-router-dom';
 
 interface Result {
     model: string;
@@ -19,11 +21,21 @@ export default function App() {
 
   //TODO actually get the userID from GitHub/Globus OAUTH
   const [author, setAuthor] = useState("");
-
-  return <MantineProvider theme={theme}>
-    <HeaderSimple author={author}/>
-    <QuestionsForm author={author} setAuthor={setAuthor} />
-  </MantineProvider>;
+  return (
+    <MantineProvider theme={theme}>
+        <Router basename={import.meta.env.BASE_URL}>
+            <Routes>
+                <Route path="/" element={
+                    <>
+                        <HeaderSimple author={author} />
+                        <QuestionsForm author={author} setAuthor={setAuthor} />
+                    </>
+                } />
+                <Route path="/why-contribute" element={<WhyContribute />} />
+            </Routes>
+        </Router>
+    </MantineProvider>
+  );
 }
 
 interface HeaderProps {
@@ -35,7 +47,7 @@ export function HeaderSimple({author} : HeaderProps) {
   return (
     <header className={classes.header}>
       <Container size="md" className={classes.inner}>
-        <h1>AuroraGPT Question Generation Interface</h1>
+        <h1>AI4Science Question Generation</h1>
         <p>Authoring As: {author}</p>
         <a href="mailto:agptquestionsform@lists.cels.anl.gov">Support</a>
       </Container>
@@ -48,6 +60,7 @@ export function QuestionsInstructions() {
         return (<div>
             <Text>Thank you for agreeing to help contribute questions to AuroraGPT Project! A few guidelines:</Text>
             <ul>
+                <li><Link to="/why-contribute" target="_blank" rel="noopener noreferrer">Why contribute?</Link></li>
                 <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AuroraGPT and other tasks as needed, and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
                 <li>Your answer to the question should be referenced with a published paper or a scientific textbook. Please be prepared to provide the DOI or XiV ID of the paper or the ISBN of the book as a reference when submitting your question.</li>
@@ -445,9 +458,10 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 {
                     (results.length == 0) ? 
                     <Card shadow="sm" p="lg" radius="md" withBorder>
-                        <Text size="sm">ℹ️ Please click <strong>Test</strong> to test your question</Text>
+                        <Text size="sm">ℹ️ The collected personnel information will be stored in the database storing the MCQs. This information will be accessible only to researchers involved in AI4Science benchmark. It will be used to perform statistics.</Text>
+                        <Text size="sm">ℹ️ Please click <strong>Test</strong> to test your question.</Text>
                         <Text size="sm">ℹ️ You will get the results instantaneously in most cases, but you may occasionally need to wait for upto 5 minutes for a cold start.</Text>
-                        <Text size="sm">ℹ️ Please click <strong>Submit</strong> after you <strong>Test</strong> your question and believe your question is ready for submission</Text>
+                        <Text size="sm">ℹ️ Please click <strong>Submit</strong> after you <strong>Test</strong> your question and believe your question is ready for submission.</Text>
                     </Card>: <></>
                 }
                 <Notifications position="bottom-center" />
