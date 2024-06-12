@@ -80,7 +80,7 @@ export function HeaderSimple({author} : HeaderProps) {
   return (
     <header className={classes.header}>
       <Container size="md" className={classes.inner}>
-        <h1>AI4Science Question Generation</h1>
+        <h1>AI4Science Benchmark Question Generation</h1>
         <p>Authoring As: {author}</p>
         <a href="mailto:agptquestionsform@lists.cels.anl.gov">Support</a>
       </Container>
@@ -91,9 +91,14 @@ export function HeaderSimple({author} : HeaderProps) {
 export function QuestionsInstructions() {
         //TODO please ensure that this list of instructions is full and complete
         return (<div>
-            <Text>Thank you for agreeing to help contribute questions to AuroraGPT Project! A few guidelines:</Text>
+            <DropdownButton />
+            <Text style={{
+                paddingTop: '20px', 
+            }}>
+                Thank you for agreeing to help contribute questions to AI4Science Project! A few guidelines:
+            </Text>
             <ul>
-                <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AuroraGPT and other tasks as needed, and you are allowed to make these contributions.</li>
+                <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AI4Science and other tasks as needed, and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
                 <li>Your answer to the question should be referenced with a published paper or a scientific textbook. Please be prepared to provide the DOI or XiV ID of the paper or the ISBN of the book as a reference when submitting your question.</li>
                 <li>Your question must be a multiple-choice question with only 1 correct answer. These are the easiest to evaluate.</li>
@@ -103,7 +108,7 @@ export function QuestionsInstructions() {
                 <li>For now avoid questions that require interpretation of figures or tables as our ability to extract these is limited.</li>
                 <li>Before you will be able to submit, you will need to test your questions against various LLMs using the Test feature below. <strong>Please avoid using 3rd party LLMs or other systems to test your question to avoid benchmark leakage</strong>.</li>
                 <li>Your answer to the question should be addressed unambiguously in a published paper.</li>
-                <li><DropdownButton /></li>
+                
             </ul>
             
         </div>);
@@ -507,7 +512,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             { results.length == 0 ? <></>:
             <Grid>
                 <Grid.Col span={12}>
-                    <h1>Evaluation Results (does not evaluate AuroraGPT)</h1>
+                    <h1>Evaluation Results</h1>
                     <Group justify="right" p="md">
                         <Switch
                             checked={showlogprob}

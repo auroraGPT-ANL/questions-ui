@@ -4,7 +4,7 @@ import { Container } from '@mantine/core';
 function WhyContribute() {
   return (
     <Container style={{
-      borderLeft: '2px gray solid',
+      borderLeft: '1.5px gray solid',
       borderTop: 'none',
       borderRight: 'none',
       borderBottom: 'none',
