@@ -3,7 +3,13 @@ import { Container } from '@mantine/core';
 
 function WhyContribute() {
   return (
-    <Container>
+    <Container style={{
+      borderLeft: '2px gray solid',
+      borderTop: 'none',
+      borderRight: 'none',
+      borderBottom: 'none',
+      padding: '0 1rem', // Adjust the padding as needed
+    }}>
     <div>
       {/* <h1>Why Contribute?</h1> */}
       <h3>Personal benefits </h3>
