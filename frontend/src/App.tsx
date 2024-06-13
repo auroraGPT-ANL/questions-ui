@@ -95,10 +95,10 @@ export function QuestionsInstructions() {
             <Text style={{
                 paddingTop: '20px', 
             }}>
-                Thank you for agreeing to help contribute questions to AI4Science Project! A few guidelines:
+                Thank you for agreeing to help contribute questions to AI4Science benchmark! A few guidelines:
             </Text>
             <ul>
-                <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AI4Science and other tasks as needed, and you are allowed to make these contributions.</li>
+                <li>By contributing your questions here, you agree the data you submit in this form may be used for evaluation of AI models and other tasks as needed, and you are allowed to make these contributions.</li>
                 <li>In the near future, Globus Authentication will be required to submit and test your questions.  This is primarily to prevent spam.</li>
                 <li>Your answer to the question should be referenced with a published paper or a scientific textbook. Please be prepared to provide the DOI or XiV ID of the paper or the ISBN of the book as a reference when submitting your question.</li>
                 <li>Your question must be a multiple-choice question with only 1 correct answer. These are the easiest to evaluate.</li>
