@@ -11,8 +11,10 @@ spack:
   - mysql+client_only
   - py-pip
   - neovim
+  - postgresql
   view: true
   concretizer:
     unify: true
     duplicates:
       strategy: none
+  compilers: []
