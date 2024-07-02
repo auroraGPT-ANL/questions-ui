@@ -1,5 +1,46 @@
 // WhyContribute.jsx
-import { Container } from '@mantine/core';
+import { useState } from 'react';
+import { Container, Text,  Collapse } from '@mantine/core';
+import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+
+export function WhyContributeDropdown() {
+  const [opened, setOpened] = useState(false);
+
+  const toggleOpen = () => {
+    setOpened((prev) => !prev);
+  };
+
+  return (
+    <div>
+      <Text
+        style={{
+          cursor: 'pointer',
+          fontStyle: 'italic',
+          fontWeight: 'bold',
+          color: 'black',
+        }}
+        onClick={toggleOpen}
+      >
+        {opened ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />} Why contribute?
+      </Text>
+      <Collapse in={opened}>
+        <WhyContribute />
+        <Text
+          style={{
+            cursor: 'pointer',
+            fontStyle: 'italic',
+            fontWeight: 'bold',
+            color: 'black',
+            marginTop: '1rem',
+          }}
+          onClick={toggleOpen}
+        >
+           <IconChevronUp size={16} /> Close
+        </Text>
+      </Collapse>
+    </div>
+  );
+}
 
 function WhyContribute() {
   return (
