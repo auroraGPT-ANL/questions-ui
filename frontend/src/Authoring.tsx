@@ -111,7 +111,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         setPositionImpl(value);
         console.log(value);
     };
-    const [affiliation, setAffiliationImpl] = useState('');
+    const [affilliation, setAffiliationImpl] = useState('');
     const setAffiliation = (value: string) => {
         setEdited(true);
         setAffiliationImpl(value);
@@ -208,7 +208,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             disabled = disabled || true;
             reasons.push("Author is required");
         }
-        if (affiliation.length === 0) {
+        if (affilliation.length === 0) {
             disabled = disabled || true;
             reasons.push("Affiliation is required");
         }
@@ -217,7 +217,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             reasons.push("Position is required");
         }
         return [disabled, reasons];
-    }, [distractors, correctAnswer, question, skills, difficulty, doi, author, affiliation, position]);
+    }, [distractors, correctAnswer, question, skills, difficulty, doi, author, affilliation, position]);
 
     const testQuestion = async () => {
         const testing = notifications.show({title: 'testing question', message: 'please wait upto 5 minutes for cold starts', autoClose: false});
@@ -238,9 +238,11 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                         doi: doi,
                         support: support,
                         comments: comments,
-                        author: author,
-                        affiliation: affiliation,
-                        position: position
+                        author: {
+                            name: author,
+                            affilliation : affilliation,
+                            position: position
+                        }
                     }
                 )
             });
@@ -279,9 +281,11 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                         doi: doi,
                         support: support,
                         comments: comments,
-                        author: author,
-                        affiliation: affiliation,
-                        position: position
+                        author: {
+                            name: author,
+                            affilliation: affilliation,
+                            position: position
+                        }
                     }
                 )
             });
@@ -388,7 +392,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
                 <TextInput required label="Author" placeholder="Author" defaultValue={author} onChange={authorChange} />
-                <TextInput required label="Affiliation" placeholder="Affiliation" value={affiliation} onChange={(e) => setAffiliation(e.currentTarget.value)}/>
+                <TextInput required label="Affiliation" placeholder="Affiliation" value={affilliation} onChange={(e) => setAffiliation(e.currentTarget.value)}/>
     
                 <NativeSelect
                     required

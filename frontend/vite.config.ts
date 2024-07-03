@@ -8,4 +8,11 @@ export default defineConfig((configEnv) => { return {
       sourcemap: configEnv.mode === 'development',
   },
   plugins: [react()],
+  server: {
+      proxy: {
+          '/api': {
+              target: 'http://localhost:8000'
+          }
+      }
+  }
 };})

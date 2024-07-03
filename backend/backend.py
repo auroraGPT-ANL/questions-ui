@@ -29,7 +29,7 @@ def list_authors(db: Session = Depends(get_db), limit:int=100, skip:int=0):
                 id=i.id,
                 name=i.name,
                 position=i.position,
-                affilliation=i.affilliation,
+                affiliation=i.affiliation,
                 orcid=i.orcid,
             ) for i in db.query(Author).offset(skip).limit(limit).all()]
 
@@ -45,7 +45,7 @@ def store_question(question: CreateQuestionSchema, db: Session = Depends(get_db)
             domains=[d.name for d in q.domains],
             difficulty=q.difficulty.name,
             doi=q.doi,
-            author=q.author,
+            author=q.author.id,
             support=q.support,
             comments=q.comments,
             )

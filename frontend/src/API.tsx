@@ -1,3 +1,9 @@
+interface AuthorSchema {
+    author: string
+    affiliation: string
+    position: string
+    orcid?: string
+}
 export interface Questions {
     id?: number;
     question: string;
@@ -9,9 +15,7 @@ export interface Questions {
     doi: string;
     support: string;
     comments: string;
-    author: string;
-    affiliation: string;
-    position: string;
+    author: number|AuthorSchema;
 };
 
 export const allowedDifficulties = ['Easy (basic recall and understading)', 'Medium (application and analysis)', 'Hard (evaluation, creation, and complex problem solving)'];

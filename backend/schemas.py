@@ -82,7 +82,7 @@ class QuestionSchema(BaseModel):
     domains: list[str]
     difficulty: str
     doi: str
-    author: CreateAuthorSchema
+    author: int|CreateAuthorSchema
     support: str = ""
     comments: str = ""
     class Config:
