@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine, Table, ForeignKey, Column, DateTime, func
+from datetime import datetime
+from sqlalchemy import create_engine, Table, ForeignKey, Column, func, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, sessionmaker, relationship, mapped_column
 from typing import List,Optional
@@ -98,7 +99,7 @@ class Review(Base):
     skillcorrect: Mapped[int] = mapped_column()
     domaincorrect: Mapped[int] = mapped_column()
     comments: Mapped[str] = mapped_column()
-    modified: Mapped[DateTime] = mapped_column(default=func.now())
+    modified: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     accept: Mapped[bool] = mapped_column()
 
 def get_db():
