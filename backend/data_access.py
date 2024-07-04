@@ -1,7 +1,7 @@
 from typing import Optional
 from schemas import CreateAuthorSchema, CreateReviewSchema, CreateQuestionSchema, ReviewerSchema
 from models import Author, Affiliation, Review, Question, Skill, Domain, Difficulty, Position, Distractor, Review, domains_to_questions
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, and_, text, bindparam
 from sqlalchemy.orm import Session
 
 def insert_or_select(db: Session, EntityType, text: str):
@@ -82,23 +82,37 @@ def create_review(db: Session, review: CreateReviewSchema) -> Review:
         comments=review.comments,
         accept=review.accept,
     )
+    db.add(r)
+    db.commit()
+    db.refresh(r)
     return r
 
 def select_review_batch(db: Session, reviewer: ReviewerSchema, limit: int):
-    domains = [i.id for i in db.query(Domain).filter(Domain.name.in_(reviewer.domains)).all()]
+    print("start select review_batch")
+    domain_ids = [i.id for i in db.query(Domain).filter(Domain.name.in_(reviewer.domains)).all()]
+    print("got domains")
     author = create_or_select_author(db, reviewer.author)
-    to_review = (db.query(domains_to_questions)
-        .join(Domain)
-        .join(Author)
-        .join(Question)
-        .join(Review)
-        .filter(and_(
-            Domain.id._in(domains),
-            Author.id != author.id
-            ))
-        .group_by(Question.id)
-        .having(func.count(Review.question_id) <= 3)
-        .order_by(func.random())
-        .limit(limit)
-    )
+    print("got author")
+    to_review = db.execute(text("""
+                                SELECT question.id FROM question
+                                LEFT JOIN review ON review.question_id == question.id
+                                LEFT JOIN domains_to_questions ON question.id == domains_to_questions.question_id
+                                WHERE
+                                    question.author_id != :author_id 
+                                    AND domains_to_questions.domain_id IN :domains 
+                                GROUP BY question.id
+                                HAVING COUNT(review.id) < 3
+                                ORDER BY RANDOM()
+                                LIMIT :limit
+                                """).bindparams(
+                                    bindparam("author_id"),
+                                    bindparam("domains", expanding=True),
+                                    bindparam("limit")
+                                ),
+                           {
+                               "author_id": author.id,
+                               "domains": domain_ids,
+                               "limit": limit
+                           }).fetchall()
+    print("got review", to_review)
     return to_review

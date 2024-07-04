@@ -1,10 +1,11 @@
 import asyncio
-from fastapi import FastAPI, Depends, Request
+import json
+from fastapi import FastAPI, Depends, Request, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Annotated
 import starlette.status as status
 from models import *
 from schemas import *
@@ -18,20 +19,39 @@ app.mount("/ui", StaticFiles(directory="ui"), name="ui")
 def homepage(request: Request):
     return RedirectResponse(url=request.scope.get("root_path", "") + "/ui/index.html", status_code=status.HTTP_302_FOUND)
 
-@app.post("/api/author", response_model=int)
+@app.post("/api/author", response_model=AuthorSchema)
 def store_author(author: CreateAuthorSchema, db: Session = Depends(get_db)):
     a = create_or_select_author(db, author)
-    return a.id
+    return AuthorSchema(
+            id=a.id,
+            name=a.name,
+            position=a.position.name,
+            affilliation=a.affiliation.name,
+            orcid=a.orcid
+            )
 
 @app.get("/api/author", response_model=list[AuthorSchema])
 def list_authors(db: Session = Depends(get_db), limit:int=100, skip:int=0):
     return [AuthorSchema(
                 id=i.id,
                 name=i.name,
-                position=i.position,
-                affiliation=i.affiliation,
+                position=i.position.name,
+                affilliation=i.affiliation.name,
                 orcid=i.orcid,
             ) for i in db.query(Author).offset(skip).limit(limit).all()]
+
+@app.get("/api/author/{id}", response_model=AuthorSchema)
+def get_author(id: int, db: Session = Depends(get_db)):
+    i = db.query(Author).get(id)
+    if i is None:
+        raise KeyError(f"author {id} not found")
+    return AuthorSchema(
+                id=i.id,
+                name=i.name,
+                position=i.position.name,
+                affilliation=i.affiliation.name,
+                orcid=i.orcid,
+            )
 
 @app.post("/api/question", response_model=QuestionSchema)
 def store_question(question: CreateQuestionSchema, db: Session = Depends(get_db)):
@@ -50,12 +70,63 @@ def store_question(question: CreateQuestionSchema, db: Session = Depends(get_db)
             comments=q.comments,
             )
 
+@app.get("/api/question", response_model=list[QuestionSchema])
+def get_questions(db: Session = Depends(get_db), skip:int=0, limit:int=100, q:Optional[str]=None, ids: Annotated[list[int] | None, Query()] = None):
+    if ids is not None:
+        return [QuestionSchema(
+                            id=i.id,
+                            question=i.question,
+                            correct_answer=i.correct_answer,
+                            distractors=[d.text for d in i.distractors],
+                            skills=[s.name for s in i.skills],
+                            domains=[d.name for d in i.domains],
+                            difficulty=i.difficulty.name,
+                            doi=i.doi,
+                            author=i.author.id,
+                            support=i.support,
+                            comments=i.comments,
+                        )
+        for i in db.query(Question).filter(Question.id.in_(ids)).all()]
+    else:
+        return [QuestionSchema(
+                    id=i.id,
+                    question=i.question,
+                    correct_answer=i.correct_answer,
+                    distractors=[d.text for d in i.distractors],
+                    skills=[s.name for s in i.skills],
+                    domains=[d.name for d in i.domains],
+                    difficulty=i.difficulty.name,
+                    doi=i.doi,
+                    author=i.author.id,
+                    support=i.support,
+                    comments=i.comments,
+                )
+                for i in list_questions(db, skip, limit, query=q)]
+
+@app.get("/api/question/{id}", response_model=QuestionSchema)
+def get_question(id :int, db: Session = Depends(get_db)):
+    i = db.query(Question).get(id)
+    if i is None:
+        raise KeyError(f"question {id} is not found")
+    return QuestionSchema(
+                id=i.id,
+                question=i.question,
+                correct_answer=i.correct_answer,
+                distractors=[d.text for d in i.distractors],
+                skills=[s.name for s in i.skills],
+                domains=[d.name for d in i.domains],
+                difficulty=i.difficulty.name,
+                doi=i.doi,
+                author=i.author.id,
+                support=i.support,
+                comments=i.comments,
+            )
 
 @app.get("/api/review", response_model=list[ReviewSchema])
 def list_reviews(limit:int=100, skip:int=0, db: Session =Depends(get_db)):
     return [ReviewSchema(
         id=r.id,
-        author=r.author,
+        author=r.author.id,
         question_id=r.question_id,
         questionrelevent=r.questionrelevent,
         questionfromarticle=r.questionfromarticle,
@@ -148,7 +219,7 @@ def store_review(review: CreateReviewSchema, db: Session =Depends(get_db)):
     r = create_review(db, review)
     return ReviewSchema(
         id=r.id,
-        author=r.author,
+        author=r.author.id,
         question_id=r.question_id,
         questionrelevent=r.questionrelevent,
         questionfromarticle=r.questionfromarticle,
@@ -166,23 +237,13 @@ def store_review(review: CreateReviewSchema, db: Session =Depends(get_db)):
         accept=r.accept,
     )
 
-
-@app.get("/api/question", response_model=list[QuestionSchema])
-def get_questions(db: Session = Depends(get_db), skip:int=0, limit:int=100, q:Optional[str]=None):
-    return [QuestionSchema(
-                id=i.id,
-                question=i.question,
-                correct_answer=i.correct_answer,
-                distractors=[d.text for d in i.distractors],
-                skills=[s.name for s in i.skills],
-                domains=[d.name for d in i.domains],
-                difficulty=i.difficulty.name,
-                doi=i.doi,
-                author=i.author,
-                support=i.support,
-                comments=i.comments,
-            )
-            for i in list_questions(db, skip, limit, query=q)]
+@app.get("/api/reviewhistory/{author_id}", response_model=list[History])
+def reviewer_history(author_id: int, db: Session = Depends(get_db), limit:int=100, skip:int=0):
+    return [History(
+                id=h.id,
+                question=h.question.question,
+                approved=h.accept
+            ) for h in db.query(Review).filter(Review.author_id == author_id).limit(limit).offset(skip).all()]
 
 
 @app.post("/api/review_batch", response_model=list[int])

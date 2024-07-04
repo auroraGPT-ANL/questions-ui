@@ -1,6 +1,10 @@
 from typing import Optional
 from pydantic import BaseModel
 
+class History(BaseModel):
+    id: int
+    question: str
+    approved: bool
 class CreateAuthorSchema(BaseModel):
     name: str
     affilliation: str
