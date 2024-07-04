@@ -1,9 +1,10 @@
-import { Container, Grid, Button, Group, Textarea, Slider, Text , Flex, MultiSelect, TextInput } from '@mantine/core';
+import { Container, Grid, Button, Group, Textarea, Slider, Text , Flex, MultiSelect, TextInput , NativeSelect } from '@mantine/core';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
+import { notifications, Notifications } from '@mantine/notifications';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import classes from './HeaderSimple.module.css';
-import {Questions, allowedDomains} from './API';
+import {Questions, allowedDomains, allowedPositions} from './API';
 
 interface HeaderProps {
     author: string,
@@ -23,16 +24,36 @@ function HeaderSimple({author, reconfigure} : HeaderProps) {
   );
 }
 
+enum ReviewAction {
+approved,
+skipped,
+rejected
+}
+function formatReviewAction(r: ReviewAction|boolean) : string {
+    switch(r) {
+        case ReviewAction.approved:
+            return "✓"
+        case ReviewAction.rejected:
+            return "✕"
+        case ReviewAction.skipped:
+           return "=>"
+        case true: 
+            return "✓"
+        case false:
+            return "✕"
+    }
+}
 interface History {
     id: number;
     question: string;
-    approved: boolean;
+    action: ReviewAction|boolean;
 }
 interface ProgressProps {
     project: string
     sofar: number;
     goal: number;
     history: History[];
+    to_review: number[]
 }
 function ProgressTrackerUI({project, sofar, history, goal}: ProgressProps) {
     const marks = [
@@ -50,7 +71,7 @@ function ProgressTrackerUI({project, sofar, history, goal}: ProgressProps) {
         <h1>Recent Reviews</h1>
         {(history.length !== 0) ? 
         <ul>
-            {history.map((h,i) => <li key={i}><a href="#">{h.question} {h.approved ? "✓": "✕"}</a></li>)}
+            {history.map((h) => <li key={h.id}>{formatReviewAction(h.action)} {h.id}: {h.question.substring(0, 100) + (h.question.length > 100 ? "…" : "")}</li>)}
         </ul>:
         <Text>You haven't reviewed yet</Text>
         }
@@ -58,31 +79,41 @@ function ProgressTrackerUI({project, sofar, history, goal}: ProgressProps) {
     </>);
 }
 
-interface QuesitonUIProps {
+interface QuesitonDetailViewProps {
     question: Questions
 }
-function QuestionUI({question}: QuesitonUIProps) {
+function QuestionDetailView({question}: QuesitonDetailViewProps) {
     return (<>
         <h1>Question</h1>
         <p>{question.question}</p>
         <h2>Correct Answer</h2>
-        <p>{question.correct_answer}</p>
+        <ul>
+            <li>{question.correct_answer}</li>
+        </ul>
         <h2>Distractors</h2>
         <ul>
             {question.distractors.map((e,idx) => {
                 return <li key={idx}>{e}</li>;
             })}
         </ul>
+        <h2>Metadata</h2>
         <Flex direction="row" gap="2em">
             <div>
-                <h2>Domains</h2>
-                <p>{question.skills.join(", ")}</p>
+                <Text><strong>Domains</strong></Text>
+                <ul>
+                    {question.skills.map((skill, idx) => <li key={idx}>{skill}</li>)}
+                </ul>
             </div>
             <div>
-                <h2>Skills</h2>
-                <p>{question.domains.join(", ")}</p>
+                <Text><strong>Skills</strong></Text>
+                <ul>
+                    {question.domains.map((domain, idx) => <li key={idx}>{domain}</li>)}
+                </ul>
             </div>
         </Flex>
+        <Text><strong>Comments:</strong> {question.comments}</Text>
+        <Text><strong>DOI:</strong> {question.doi}</Text>
+        <Text><strong>Support:</strong> {question.support}</Text>
     </>);
 }
 interface FeedbackProps {
@@ -110,6 +141,9 @@ function FeedbackSlider({focusref, id, question, setFeedback, value}: FeedbackPr
             value={value.scores[id]}
             step={1}
             marks={marks}
+            onChangeEnd={(e) => {
+                setFeedback(id, `${e}`);
+            }}
             onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
                 switch(e.key) {
                     case "1":
@@ -156,8 +190,10 @@ interface Feedback {
 interface FeedbackUIProps {
     questionid: number
     authorid: number
+    skipCallback: () => void
+    submitCallback: (approved: boolean) => void
 }
-function FeedbackUI({questionid, authorid} : FeedbackUIProps ) {
+function FeedbackUI({skipCallback, submitCallback, questionid, authorid} : FeedbackUIProps ) {
     const [feedback, setFeedbackRaw] = useState<Feedback>({
         scores: {
         questionrelevent: 3,
@@ -215,6 +251,7 @@ function FeedbackUI({questionid, authorid} : FeedbackUIProps ) {
         if (!response.ok) {
             throw new Error(response.statusText);
         }
+        submitCallback(approve);
     };
 
     return (<>
@@ -236,7 +273,7 @@ function FeedbackUI({questionid, authorid} : FeedbackUIProps ) {
         <Group>
             <Button variant="filled" color="green" onClick={() => SubmitFeedback(true)}>Recommend Approve</Button>
             <Button variant="filled" color="red" onClick={() => SubmitFeedback(false)} >Recommend Reject</Button>
-            <Button>Skip</Button>
+            <Button onClick={() => skipCallback()}>Skip</Button>
         </Group>
         </Flex>
     </>);
@@ -245,6 +282,7 @@ function FeedbackUI({questionid, authorid} : FeedbackUIProps ) {
 interface AuthorInfoCallbackData {
     authorName: string
     authorAffiliation: string
+    authorPosition: string
     orcid: string
     reviewerSkills: string[]
 }
@@ -254,6 +292,7 @@ interface AuthorInfoProps {
 }
 function AuthorInfo({configureReviewer, defaults}: AuthorInfoProps) {
     const [authorName, setAuthorName] = useState(defaults.authorName || "");
+    const [authorPosition, setAuthorPosition] = useState(defaults.authorPosition || "");
     const [authorAffiliation, setAuthorInstition] = useState(defaults.authorAffiliation || "");
     const [orcid, setORCID] = useState(defaults.orcid || "");
     const [reviewerSkills, setReviewerSkills] = useState<string[]>(defaults.reviewerSkills || []);
@@ -263,12 +302,13 @@ function AuthorInfo({configureReviewer, defaults}: AuthorInfoProps) {
         if (authorAffiliation === "") return false;
         if (reviewerSkills.length === 0) return false;
         return true;
-    }, [authorName, authorAffiliation, reviewerSkills]);
+    }, [authorName, authorAffiliation, reviewerSkills, authorPosition]);
 
     const configure = () => {
         configureReviewer({
             authorName: authorName,
             authorAffiliation: authorAffiliation,
+            authorPosition: authorPosition,
             orcid: orcid,
             reviewerSkills: reviewerSkills
         });
@@ -278,6 +318,36 @@ function AuthorInfo({configureReviewer, defaults}: AuthorInfoProps) {
             <Flex direction="column">
             <TextInput required value={authorName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAuthorName(e.currentTarget.value)}}  label="Name" placeholder="What is your name?" />
             <TextInput required value={authorAffiliation} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAuthorInstition(e.currentTarget.value)}}  label="Affiliation" placeholder="What is your affiliation?" />
+                <NativeSelect
+                    required
+                    value={authorPosition}
+                    onChange={(e) => setAuthorPosition(e.currentTarget.value)}
+                    label="Position"
+                    data={
+                        authorPosition ? 
+                        allowedPositions.map(pos => ({ value: pos, label: pos })) : 
+                        [
+                            { value: '', label: 'Select position', disabled: true }, 
+                            ...allowedPositions.map(pos => ({ value: pos, label: pos }))
+                        ]
+                    }
+                    styles={() => ({
+                        input: {
+                          color: authorPosition ? 'black' : 'rgb(173, 181, 189)',
+                          '&:not(:focus):invalid': {
+                            color: 'rgb(173, 181, 189)' 
+                          }
+                        },
+                        item: {
+                          '&[data-disabled]': {
+                            color: 'rgb(173, 181, 189)', 
+                          },
+                          '&:not([data-disabled])': {
+                            color: 'black',
+                          }
+                        }
+                    })}
+                />
             <TextInput value={orcid} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setORCID(e.currentTarget.value)}}  label="ORCID" placeholder="What is your ORCID if you have one?" />
             <MultiSelect required value={reviewerSkills} onChange={setReviewerSkills} label="Domains" data={allowedDomains} searchable placeholder="What domains can you review for?" />
             <Button disabled={!readyToReview} onClick={(_e: React.MouseEvent) => { configure() }}>Start Reviewing</Button>
@@ -290,30 +360,130 @@ export function QuestionReviewing () {
         authorName: "",
         authorAffiliation: "",
         orcid: "",
+        authorPosition: "",
         reviewerSkills: [],
     });
-    const [authorID, _setAuthorID] = useState(0);
-    const [progress, _setProgress] = useState<ProgressProps>({
+    const [authorID, setAuthorID] = useState(0);
+    const [progress, setProgress] = useState<ProgressProps>({
         project: "AuroraGPT",
         sofar: 0,
         goal: 0,
-        history: []
+        history: [],
+        to_review: []
     })
-    const [idx, _setIdx] = useState<number>(0);
-    const [questions, _setQuestions] = useState<Questions[]>([]);
+    const [idx, setIdx] = useState<number>(0);
+    const [questions, setQuestions] = useState<Questions[]>([]);
 
     const configureReviewer = async (authorInfo: AuthorInfoCallbackData) => {
         setAuthorInfo(authorInfo);
-        //TODO create and or configure author
+        const author_response = await fetch(import.meta.env.BASE_URL + '../api/author', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: authorInfo.authorName,
+                affilliation: authorInfo.authorAffiliation,
+                position: authorInfo.authorPosition,
+                orcid: authorInfo.orcid
+            })
+        });
+        if (!author_response.ok) {
+            throw new Error(author_response.statusText);
+        }
+        const server_author_info = await author_response.json();
+        console.log("author_info", server_author_info);
+        setAuthorID(server_author_info.id);
 
-        //TODO determine questions to review
+        const reviewbatch_response = await fetch(import.meta.env.BASE_URL + '../api/review_batch', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                author: server_author_info.id,
+                domains: authorInfo.reviewerSkills
+            })
+        });
+        if (!reviewbatch_response.ok) {
+            throw new Error(reviewbatch_response.statusText);
+        }
+        const to_review_ids: number[] = await reviewbatch_response.json();
+        console.log("to_review_ids", to_review_ids);
+
+        const reviewhistory_response = await fetch(import.meta.env.BASE_URL + `../api/reviewhistory/${authorID}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+        if (!reviewhistory_response.ok) {
+            throw new Error(reviewbatch_response.statusText);
+        }
+        const reviewer_history: History[] = await reviewhistory_response.json();
+        console.log("history", reviewer_history);
         
-        //finaly update the UI to start reviewing
+        setProgress((progress: ProgressProps) => { return {...progress, to_review: to_review_ids, goal: to_review_ids.length, history: reviewer_history}});
+
+        if(to_review_ids.length > 0) {
+            const ids_query = "?" + to_review_ids.map(x => `ids=${x}`).join('&');
+            const questions_response = await fetch(import.meta.env.BASE_URL + `../api/question${ids_query}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+            if (!questions_response.ok) {
+                throw new Error(questions_response.statusText);
+            }
+            const review_questions = await questions_response.json()
+            console.log("review_questions", review_questions);
+            setQuestions(review_questions);
+        }
+        
         setConfigured(true);
+    };
+
+    const skipCallback = () => {
+        setProgress((progress : ProgressProps) => {
+            return {
+                ...progress,
+                sofar: progress.sofar+1,
+                history: [
+                    ...progress.history,
+                    {
+                        id: questions[idx].id!,
+                        question: questions[idx].question,
+                        action: ReviewAction.skipped
+                    }
+                ]
+            }
+        });
+        setIdx((idx: number) => idx + 1);
+        window.scrollTo({top: 0, left: 0, behavior: 'instant'});
+        notifications.show({title: 'skipped question', message: `This question will be reconsidered later`, autoClose: 5000});
+    };
+    const submitCallback = (approved: boolean) => {
+        setProgress((progress: ProgressProps) => { return {
+            ...progress,
+            sofar: progress.sofar+1,
+            history: [
+                ...progress.history,
+                {
+                    id: questions[idx].id!,
+                    question: questions[idx].question,
+                    action: (approved)? ReviewAction.approved: ReviewAction.rejected
+                }
+            ]
+        }});
+        setIdx((idx : number) => idx + 1);
+        window.scrollTo({top: 0, left: 0, behavior: 'instant'});
+        notifications.show({title: 'submitted review', message: `successfully submitted your question: ${questions[idx].id!}: ${questions[idx].question}`, autoClose: 5000});
     };
 
     return (<>
             <HeaderSimple author={authorInfo.authorName} reconfigure={()=>{setConfigured(false)}} />
+            <Notifications position="top-center" />
             <Container>
             {(configured) ?
             (<Grid>
@@ -324,14 +494,14 @@ export function QuestionReviewing () {
              </Grid.Col>
              <Grid.Col span={8}>
              <Container>
-             {(questions.length > 0) ?
+             {(questions.length > 0 && idx < questions.length) ?
                  <>
-                     <QuestionUI question={questions[idx]}/>
-                     <FeedbackUI questionid={questions[idx].id || 0} authorid={authorID}/>
+                     <QuestionDetailView question={questions[idx]}/>
+                     <FeedbackUI questionid={questions[idx].id || 0} authorid={authorID} skipCallback={skipCallback} submitCallback={submitCallback} />
                  </>:
                  <>
                     <h1>Thanks for offering to review</h1>
-                    <Text>We have no questions requiring your expertise at this time.  Please come back later after more questions have been developed, or select more review topics.</Text>
+                    <Text>We have no more questions requiring your expertise at this time.  Please come back later after more questions have been developed, or select more review topics.</Text>
                  </>
              }
              </Container>
