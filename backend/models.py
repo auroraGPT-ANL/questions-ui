@@ -1,13 +1,14 @@
 from datetime import datetime
 from sqlalchemy import create_engine, Table, ForeignKey, Column, func, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Mapped, sessionmaker, relationship, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, sessionmaker, relationship, mapped_column
 from typing import List,Optional
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///questions.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 skills_to_questions = Table("skills_to_questions",
                             Base.metadata,

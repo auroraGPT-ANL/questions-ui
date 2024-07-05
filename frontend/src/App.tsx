@@ -20,9 +20,9 @@ export default function App() {
     <MantineProvider theme={theme}>
         <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
-            <Route path="*" element={<QuestionAuthoring />} />
-            <Route path="reviewing" element={<QuestionReviewing />} />
-            <Route path="notfound" element={<NotFound />} />
+            <Route index element={<QuestionAuthoring />} />
+            <Route path="/reviewing" element={<QuestionReviewing />} />
+            <Route path="*" element={<NotFound />} />
         </Routes>
         </BrowserRouter>
     </MantineProvider>

@@ -55,10 +55,16 @@ interface ProgressProps {
     history: History[];
     to_review: number[]
 }
-function ProgressTrackerUI({project, sofar, history, goal}: ProgressProps) {
+interface ProgressTrackerUIProps {
+    progress: ProgressProps
+    navigateHistoryCallback: (question_id: number) => void
+}
+function ProgressTrackerUI({progress}: ProgressTrackerUIProps) {
+    const {project, sofar, history, goal} = progress;
     const marks = [
     {value: 0, label:""},
-    {value: goal, label: `Gloal ${goal}`},
+    {value: sofar, label:`So Far ${sofar}`},
+    {value: goal, label: `Goal ${goal}`},
     ];
     return (<>
         <h1>Project</h1>
@@ -79,43 +85,7 @@ function ProgressTrackerUI({project, sofar, history, goal}: ProgressProps) {
     </>);
 }
 
-interface QuesitonDetailViewProps {
-    question: Questions
-}
-function QuestionDetailView({question}: QuesitonDetailViewProps) {
-    return (<>
-        <h1>Question</h1>
-        <p>{question.question}</p>
-        <h2>Correct Answer</h2>
-        <ul>
-            <li>{question.correct_answer}</li>
-        </ul>
-        <h2>Distractors</h2>
-        <ul>
-            {question.distractors.map((e,idx) => {
-                return <li key={idx}>{e}</li>;
-            })}
-        </ul>
-        <h2>Metadata</h2>
-        <Flex direction="row" gap="2em">
-            <div>
-                <Text><strong>Domains</strong></Text>
-                <ul>
-                    {question.skills.map((skill, idx) => <li key={idx}>{skill}</li>)}
-                </ul>
-            </div>
-            <div>
-                <Text><strong>Skills</strong></Text>
-                <ul>
-                    {question.domains.map((domain, idx) => <li key={idx}>{domain}</li>)}
-                </ul>
-            </div>
-        </Flex>
-        <Text><strong>Comments:</strong> {question.comments}</Text>
-        <Text><strong>DOI:</strong> {question.doi}</Text>
-        <Text><strong>Support:</strong> {question.support}</Text>
-    </>);
-}
+
 interface FeedbackProps {
     id: keyof Scores;
     value: Feedback;
@@ -126,8 +96,9 @@ interface FeedbackProps {
 function FeedbackSlider({focusref, id, question, setFeedback, value}: FeedbackProps) {
     const marks = [
     {value: 1, label:"1: absolutely not"},
-    {value: 3, label:"3: debatably"},
-    {value: 5, label:"5: absolutely"},
+    {value: 2, label:"2: likely not"},
+    {value: 3, label:"3: likely"},
+    {value: 4, label:"4: absolutely"},
     ];
 
     return (<>
@@ -136,8 +107,8 @@ function FeedbackSlider({focusref, id, question, setFeedback, value}: FeedbackPr
             ref={focusref}
             label={question}
             min={1}
-            max={5}
-            defaultValue={3}
+            max={4}
+            defaultValue={2}
             value={value.scores[id]}
             step={1}
             marks={marks}
@@ -150,7 +121,6 @@ function FeedbackSlider({focusref, id, question, setFeedback, value}: FeedbackPr
                     case "2":
                     case "3":
                     case "4":
-                    case "5":
                         setFeedback(id, e.key);
                         break;
                     case "ArrowUp":
@@ -188,12 +158,13 @@ interface Feedback {
 };
 
 interface FeedbackUIProps {
+    question: Questions
     questionid: number
     authorid: number
     skipCallback: () => void
     submitCallback: (approved: boolean) => void
 }
-function FeedbackUI({skipCallback, submitCallback, questionid, authorid} : FeedbackUIProps ) {
+function FeedbackUI({question, skipCallback, submitCallback, questionid, authorid} : FeedbackUIProps ) {
     const [feedback, setFeedbackRaw] = useState<Feedback>({
         scores: {
         questionrelevent: 3,
@@ -256,17 +227,52 @@ function FeedbackUI({skipCallback, submitCallback, questionid, authorid} : Feedb
 
     return (<>
         <h1>Feedback</h1>
+        <Text><strong>Question ID:</strong> {question.id}</Text>
         <Flex direction="column" gap="lg">
-        <FeedbackSlider focusref={ref} id="questionrelevent" setFeedback={setFeedback} value={feedback} question="Using only the text of the question, How relevant is the question to the original article?" />
-        <FeedbackSlider id="questionfromarticle" setFeedback={setFeedback} value={feedback} question="Using only the text of the question, can the question be answered definitively based on the article?" />
-        <FeedbackSlider id="questionindependence" setFeedback={setFeedback} value={feedback} question="Using only the text of the question, Can this question be answered on its own without the article? (e.g. Does it reference the content of a figure? Quote specific values or phrases?)" />
-        <FeedbackSlider id="questionchallenging" setFeedback={setFeedback} value={feedback} question="Using only the text of the question, I think this question is appropriately challenging for a graduate level exam on this topic" />
+        <div>
+            <Text><strong>Using only the text and source of the question:</strong></Text>
+            <blockquote>{question.question}</blockquote>
+            <Text><strong>Comments:</strong> {question.comments}</Text>
+            <Text><strong>Reference (ISBN/DOI/XiV):</strong> {question.doi}</Text>
+            <Text><strong>Support:</strong> {question.support}</Text>
+        </div>
+        <FeedbackSlider focusref={ref} id="questionrelevent" setFeedback={setFeedback} value={feedback} question="Is the question relevant to the original article?" />
+        <FeedbackSlider id="questionfromarticle" setFeedback={setFeedback} value={feedback} question="Can the question be answered definitively based on the article?" />
+        <FeedbackSlider id="questionindependence" setFeedback={setFeedback} value={feedback} question="Can this question be answered on its own without the article? (e.g. Does it reference the content of a figure? Quote specific values or phrases?)" />
+        <div>
+            <Text><strong>Now consider the answers:</strong></Text>
+            <Text><strong>Correct Answer:</strong>{question.correct_answer}</Text>
+            <Text><strong>Distractors:</strong></Text>
+            <ul>
+                {question.distractors.map((e,idx) => {
+                    return <li key={idx}>{e}</li>;
+                })}
+            </ul>
+        </div>
+        <FeedbackSlider id="questionchallenging" setFeedback={setFeedback} value={feedback} question="I think this question is appropriately challenging for a graduate level exam on this topic." />
         <FeedbackSlider id="answerrelevent" setFeedback={setFeedback} value={feedback} question="How relevent is the answer to the question?" />
         <FeedbackSlider id="answerfromarticle" setFeedback={setFeedback} value={feedback} question="How relevent is the answer to the content of the article?" />
         <FeedbackSlider id="answercomplete" setFeedback={setFeedback} value={feedback} question="How completely do the answers respond to the question?" />
         <FeedbackSlider id="answerunique" setFeedback={setFeedback} value={feedback} question="There is only one correct answer?" />
         <FeedbackSlider id="answeruncontroverial" setFeedback={setFeedback} value={feedback} question="Is the answer uncontroverial to the question?" />
-        <FeedbackSlider id="arithmaticfree" setFeedback={setFeedback} value={feedback} question="Does this question avoid arithmatic?" />
+        <div>
+        <Text><strong>Now think overall and consider the skills and domains involved:</strong></Text>
+        <Flex direction="row" gap="2em">
+            <div>
+                <Text><strong>Domains</strong></Text>
+                <ul>
+                    {question.skills.map((skill, idx) => <li key={idx}>{skill}</li>)}
+                </ul>
+            </div>
+            <div>
+                <Text><strong>Skills</strong></Text>
+                <ul>
+                    {question.domains.map((domain, idx) => <li key={idx}>{domain}</li>)}
+                </ul>
+            </div>
+        </Flex>
+        </div>
+        <FeedbackSlider id="arithmaticfree" setFeedback={setFeedback} value={feedback} question="Does this question and answers avoid arithmatic?" />
         <FeedbackSlider id="skillcorrect" setFeedback={setFeedback} value={feedback} question="Are the skills selected appropraite for the question?" />
         <FeedbackSlider id="domaincorrect" setFeedback={setFeedback} value={feedback} question="Are the domains selected appropraite for the question?" />
         <Textarea label="Comments" onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFeedbackRaw({...feedback, comments: e.currentTarget.value}) }  />
@@ -481,6 +487,53 @@ export function QuestionReviewing () {
         notifications.show({title: 'submitted review', message: `successfully submitted your question: ${questions[idx].id!}: ${questions[idx].question}`, autoClose: 5000});
     };
 
+    const navigateHistoryCallback = async (question_id: number) => {
+        //we want to enforce the invariant that all of the questions before the current index are 
+        //approved, rejected, or skipped, and those after the index are unconsidered
+
+        //if we haven't downloaded the question download it, splice it in at the current index
+        //if the current question has been acted upon before
+        if (!progress.to_review.includes(question_id)) {
+            const response = await fetch(import.meta.env.BASE_URL + `../api/question/${question_id}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
+            const new_question: Questions = await response.json();
+            setQuestions(questions => {
+                const new_questions = [...questions];
+                new_questions.splice(idx, 0, new_question);
+                return new_questions;
+            });
+            setProgress((progress: ProgressProps) => {
+
+                const new_toreview = [...progress.to_review];
+                new_toreview.splice(idx, 0, question_id);
+
+                const last_history = progress.history.reverse().find(h => h.id == questions[idx].id!);
+                const last_action = (last_history === undefined) ? ReviewAction.skipped : last_history.action;
+                const new_sofar = (last_history === undefined) ? progress.sofar+1 : progress.sofar;
+                const new_history = [...progress.history, {action: last_action, id: questions[idx].id!, question: questions[idx].question }];
+
+                return {
+                    ...progress,
+                    to_review: new_toreview,
+                    history: new_history,
+                    goal: progress.goal+1,
+                    sofar: new_sofar
+                }
+            })
+        } else {
+        }
+        //when we revisit a question
+
+        window.scrollTo({top: 0, left: 0, behavior: 'instant'});
+    };
+
     return (<>
             <HeaderSimple author={authorInfo.authorName} reconfigure={()=>{setConfigured(false)}} />
             <Notifications position="top-center" />
@@ -489,15 +542,14 @@ export function QuestionReviewing () {
             (<Grid>
              <Grid.Col span={4}>
              <Container>
-             <ProgressTrackerUI {...progress} />
+             <ProgressTrackerUI progress={progress} navigateHistoryCallback={navigateHistoryCallback} />
              </Container>
              </Grid.Col>
              <Grid.Col span={8}>
              <Container>
              {(questions.length > 0 && idx < questions.length) ?
                  <>
-                     <QuestionDetailView question={questions[idx]}/>
-                     <FeedbackUI questionid={questions[idx].id || 0} authorid={authorID} skipCallback={skipCallback} submitCallback={submitCallback} />
+                     <FeedbackUI question={questions[idx]} questionid={questions[idx].id || 0} authorid={authorID} skipCallback={skipCallback} submitCallback={submitCallback} />
                  </>:
                  <>
                     <h1>Thanks for offering to review</h1>

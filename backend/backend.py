@@ -1,8 +1,7 @@
 import asyncio
-import json
 from fastapi import FastAPI, Depends, Request, Query
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from typing import Optional, Tuple, Annotated
@@ -12,12 +11,28 @@ from schemas import *
 from data_access import *
 from ai import test_question_impl
 
-app = FastAPI()
-app.mount("/ui", StaticFiles(directory="ui"), name="ui")
 
-@app.get("/")
-def homepage(request: Request):
-    return RedirectResponse(url=request.scope.get("root_path", "") + "/ui/index.html", status_code=status.HTTP_302_FOUND)
+app = FastAPI()
+# UI static files and routes
+app.mount("/ui/assets/", StaticFiles(directory="ui/assets"), name="ui")
+
+
+@app.get("/ui/", response_class=FileResponse)
+@app.get("/ui/index.html", response_class=FileResponse)
+@app.get("/ui/reviewing", response_class=FileResponse)
+@app.get("/ui/reviewing/index.html", response_class=FileResponse)
+def authoring(_: Request):
+    return FileResponse("ui/index.html")
+
+@app.get("/ui/favicon.svg", response_class=FileResponse)
+def favicon(_: Request):
+    return FileResponse("ui/favicon.svg")
+
+@app.get("/", response_class=RedirectResponse)
+def root(request: Request):
+    return RedirectResponse(url=request.scope.get("root_path", "") + "/ui", status_code=status.HTTP_302_FOUND)
+
+# API Routes
 
 @app.post("/api/author", response_model=AuthorSchema)
 def store_author(author: CreateAuthorSchema, db: Session = Depends(get_db)):
@@ -146,7 +161,7 @@ def list_reviews(limit:int=100, skip:int=0, db: Session =Depends(get_db)):
 
 @app.get("/api/review/{review_id}", response_model=ReviewSchema)
 def get_review(review_id:int, db: Session =Depends(get_db)):
-    r = db.query(Review).filter(Review.id == review_id).first()
+    r = db.query(Review).get(review_id)
     if r is not None:
         return ReviewSchema(
             id=r.id,
@@ -172,7 +187,7 @@ def get_review(review_id:int, db: Session =Depends(get_db)):
 
 @app.put("/api/review/{review_id}", response_model=ReviewSchema)
 def update_review(review_id:int, review: CreateReviewSchema, db: Session =Depends(get_db)):
-    r,*_ = db.execute(select(Review).where(Review.id == review_id)).scalar_one()
+    r = db.query(Review).get(review_id)
     if r is not None:
         r.questionrelevent=review.questionrelevent,
         r.questionfromarticle=review.questionfromarticle,
@@ -257,3 +272,4 @@ async def test_question(question: CreateQuestionSchema):
         for model in ["Llama2-7B", "Mistral-7B", "Llama3-8B"]:
             results.append((model, tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors))))
     return [QuestionEvalSchema(model=m, score=t.result()[1], correct=t.result()[0], corectlogprobs=t.result()[2], incorrectlogprobs=t.result()[3]) for (m,t) in results]
+
