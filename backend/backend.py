@@ -17,18 +17,18 @@ app = FastAPI()
 app.mount("/ui/assets/", StaticFiles(directory="ui/assets"), name="ui")
 
 
-@app.get("/ui/", response_class=FileResponse)
-@app.get("/ui/index.html", response_class=FileResponse)
-@app.get("/ui/reviewing", response_class=FileResponse)
-@app.get("/ui/reviewing/index.html", response_class=FileResponse)
+@app.get("/ui/", response_class=FileResponse, include_in_schema=False)
+@app.get("/ui/index.html", response_class=FileResponse, include_in_schema=False)
+@app.get("/ui/reviewing", response_class=FileResponse, include_in_schema=False)
+@app.get("/ui/reviewing/index.html", response_class=FileResponse, include_in_schema=False)
 def authoring(_: Request):
     return FileResponse("ui/index.html")
 
-@app.get("/ui/favicon.svg", response_class=FileResponse)
+@app.get("/ui/favicon.svg", response_class=FileResponse, include_in_schema=False)
 def favicon(_: Request):
     return FileResponse("ui/favicon.svg")
 
-@app.get("/", response_class=RedirectResponse)
+@app.get("/", response_class=RedirectResponse, include_in_schema=False)
 def root(request: Request):
     return RedirectResponse(url=request.scope.get("root_path", "") + "/ui", status_code=status.HTTP_302_FOUND)
 
