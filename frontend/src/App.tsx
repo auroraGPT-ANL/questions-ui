@@ -5,6 +5,7 @@ import '@mantine/notifications/styles.css';
 import { Routes, Route, BrowserRouter, useLocation } from "react-router-dom";
 import {QuestionAuthoring} from "./Authoring";
 import {QuestionReviewing} from "./Reviewing";
+import {Contributions} from "./Contributions";
 
 function NotFound() {
 	let location = useLocation();
@@ -21,6 +22,7 @@ export default function App() {
         <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
             <Route index element={<QuestionAuthoring />} />
+            <Route path="/contributions" element={<Contributions />} />
             <Route path="/reviewing" element={<QuestionReviewing />} />
             <Route path="*" element={<NotFound />} />
         </Routes>

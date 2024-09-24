@@ -1,8 +1,10 @@
 import asyncio
 import math
+import openai
 from openai import AsyncOpenAI, types
 from typing import Tuple, List, cast
 from config import LLM_API_BASE_URL, BACKEND_READY, MODEL_NAME_MAP
+from dataclasses import dataclass
 
 ASYNC_LLM_CLIENT = AsyncOpenAI(base_url=LLM_API_BASE_URL, api_key='EMPTY')
 
@@ -40,26 +42,37 @@ async def get_loglikelihood_async(
     loglikelihood = sum(token_logprobs[context_num_tokens:])/len(token_logprobs[context_num_tokens:])
     return loglikelihood, len(token_logprobs[context_num_tokens:])
 
+@dataclass
+class eval_result:
+    is_correct: bool
+    score: float
+    correct_log_str: str
+    incorrect_log_str: str
+    model: str
+
 async def test_question_impl(
         model: str,
         question: str,
         correct_answer: str,
         incorrect_answers: List[str],
-        ) -> Tuple[bool,float, str, str]:
+        ) -> eval_result:
     if BACKEND_READY:
-        model = MODEL_NAME_MAP[model]
-        correct_loglikelihood, correct_token_count = await get_loglikelihood_async(ASYNC_LLM_CLIENT, question, correct_answer, model)
-        incorrect_responses = await asyncio.gather(
-            *[get_loglikelihood_async(ASYNC_LLM_CLIENT, question, incorrect_answer, model) for incorrect_answer in incorrect_answers]
-        )
-        incorrect_loglikelihoods, incorrect_token_counts = [r[0] for r in incorrect_responses], [r[1] for r in incorrect_responses]
-        avg_token_count = (correct_token_count + sum(incorrect_token_counts)) / (len(incorrect_token_counts) + 1)
-        answer_correctly = correct_loglikelihood > max(incorrect_loglikelihoods)
-        score = math.exp(correct_loglikelihood*avg_token_count) / (sum([math.exp(loglikelihood*avg_token_count) for loglikelihood in incorrect_loglikelihoods]) + math.exp(correct_loglikelihood*avg_token_count))
-        correct_log_str = f'{correct_loglikelihood:.2f}'
-        incorrect_logs_str = ",".join([f'{loglikelihood:.2f}' for loglikelihood in incorrect_loglikelihoods])
+        try:
+            model = MODEL_NAME_MAP[model]
+            correct_loglikelihood, correct_token_count = await get_loglikelihood_async(ASYNC_LLM_CLIENT, question, correct_answer, model)
+            incorrect_responses = await asyncio.gather(
+                *[get_loglikelihood_async(ASYNC_LLM_CLIENT, question, incorrect_answer, model) for incorrect_answer in incorrect_answers]
+            )
+            incorrect_loglikelihoods, incorrect_token_counts = [r[0] for r in incorrect_responses], [r[1] for r in incorrect_responses]
+            avg_token_count = (correct_token_count + sum(incorrect_token_counts)) / (len(incorrect_token_counts) + 1)
+            answer_correctly = correct_loglikelihood > max(incorrect_loglikelihoods)
+            score = math.exp(correct_loglikelihood*avg_token_count) / (sum([math.exp(loglikelihood*avg_token_count) for loglikelihood in incorrect_loglikelihoods]) + math.exp(correct_loglikelihood*avg_token_count))
+            correct_log_str = f'{correct_loglikelihood:.2f}'
+            incorrect_logs_str = ",".join([f'{loglikelihood:.2f}' for loglikelihood in incorrect_loglikelihoods])
 
-        return answer_correctly, score, correct_log_str, incorrect_logs_str
+            return eval_result(answer_correctly, score, correct_log_str, incorrect_logs_str, model)
+        except openai.APITimeoutError:
+            raise TimeoutError(f"{model} timed out")
     else:
-        return False, 0.0, "", ""
+        return eval_result(False, 0.0, "", "", model)
 

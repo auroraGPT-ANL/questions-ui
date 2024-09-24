@@ -2,19 +2,43 @@ import { ChangeEvent, useState, useMemo } from 'react';
 import { Container, TextInput, Text, Button, NativeSelect, MultiSelect, Flex, Textarea, em, Grid, Table, Alert, Card, Switch, Group , Tooltip } from '@mantine/core';
 import { notifications, Notifications } from '@mantine/notifications';
 import {WhyContributeDropdown} from "./WhyContribute";
-import classes from './HeaderSimple.module.css';
+import {HeaderSimple} from "./HeaderSimple";
+import {AuthorInfoCallbackData, AuthorInfo} from "./AuthorInfo";
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
-import {allowedDifficulties, allowedPositions, allowedSkills, allowedDomains} from './API'
+import {allowedDifficulties, allowedSkills, allowedDomains} from './API'
 
 export function QuestionAuthoring() {
-    const [author, setAuthor] = useState("");
-    return (
+    const [authorInfo, setAuthorInfo] = useState<AuthorInfoCallbackData>({
+        authorName: "",
+        authorAffiliation: "",
+        orcid: "",
+        authorPosition: "",
+        reviewerSkills: [],
+    });
+    const [configured, setConfigured] = useState<boolean>(false);
+    const reconfigure = () => {
+        setConfigured(false);
+    };
+    const configureAuthor = (authorInfo: AuthorInfoCallbackData) => {
+        setAuthorInfo(authorInfo);
+        setConfigured(true);
+    };
+
+    return  (
             <>
-            <HeaderSimple author={author} />
-            <QuestionsForm author={author} setAuthor={setAuthor} />
+            <HeaderSimple title="AI4Science Questions" reconfigure={reconfigure} author={authorInfo.authorName} />
+            <Container>
+            {
+            (configured == true)?
+                ( <QuestionsForm author={authorInfo} /> ):
+                (
+                    <AuthorInfo actionTitle="Authoring" configureAuthor={configureAuthor} defaults={authorInfo}/>
+                 )
+            }
+            </Container>
             </>
-           );
+            );
 }
 
 interface Result {
@@ -48,22 +72,6 @@ export function QuestionsInstructions() {
         </div>);
 }
 
-interface HeaderProps {
-    author: string
-};
-
-export function HeaderSimple({author} : HeaderProps) {
-
-  return (
-    <header className={classes.header}>
-      <Container size="md" className={classes.inner}>
-        <h1>AI4Science Benchmark Question Generation</h1>
-        <p>Authoring As: {author}</p>
-        <a href="mailto:agptquestionsform@lists.cels.anl.gov">Support</a>
-      </Container>
-    </header>
-  );
-}
 
 interface ValidationFeedbackProps {
     reasons: string[];
@@ -79,16 +87,10 @@ export function ValidationFeedback({reasons}: ValidationFeedbackProps) {
 }
 
 interface QuestionsFormProps {
-    author: string;
-    setAuthor: (author: string) => void;
+    author: AuthorInfoCallbackData
 };
 
-export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
-    const authorChange = (e: ChangeEvent<HTMLInputElement>) => {
-        setAuthor(e.currentTarget.value);
-    }
-
-
+export function QuestionsForm({author}: QuestionsFormProps) {
     const [edited, setEdited] = useState(false);
     const [question, setQuestionImpl] = useState('');
     const setQuestion = (value: string) => {
@@ -104,18 +106,6 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
     const setDifficulty = (value: string) => {
         setEdited(true);
         setDifficultyImpl(value);
-    };
-    const [position, setPositionImpl] = useState('');
-    const setPosition = (value: string) => {
-        setEdited(true);
-        setPositionImpl(value);
-        console.log(value);
-    };
-    const [affilliation, setAffiliationImpl] = useState('');
-    const setAffiliation = (value: string) => {
-        setEdited(true);
-        setAffiliationImpl(value);
-        console.log(value);
     };
     const [skills, setSkillsImpl] = useState<string[]>([]);
     const setSkills = (value: string[]) => {
@@ -204,20 +194,8 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
             disabled = disabled || true;
             reasons.push("A reference ISBN, DOI, or XiV ID is required");
         }
-        if (author.length === 0) {
-            disabled = disabled || true;
-            reasons.push("Author is required");
-        }
-        if (affilliation.length === 0) {
-            disabled = disabled || true;
-            reasons.push("Affiliation is required");
-        }
-        if (position.length === 0) {
-            disabled = disabled || true;
-            reasons.push("Position is required");
-        }
         return [disabled, reasons];
-    }, [distractors, correctAnswer, question, skills, difficulty, doi, author, affilliation, position]);
+    }, [distractors, correctAnswer, question, skills, difficulty, doi, author]);
 
     const testQuestion = async () => {
         const testing = notifications.show({title: 'testing question', message: 'please wait upto 5 minutes for cold starts', autoClose: false});
@@ -227,7 +205,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(
+               body: JSON.stringify(
                     {
                         question: question,
                         correct_answer: correctAnswer,
@@ -239,15 +217,22 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                         support: support,
                         comments: comments,
                         author: {
-                            name: author,
-                            affilliation : affilliation,
-                            position: position
+                            name: author.authorName,
+                            affilliation : author.authorAffiliation,
+                            position: author.authorPosition
                         }
                     }
                 )
             });
             if (!response.ok) {
-                throw new Error(response.statusText);
+                if(response.status === 503) {
+                    notifications.hide(testing);
+                    notifications.show({title: 'testing unavailable', message: `Our testing backend is offline, you can try again later or you can submit now`, autoClose: 5000});
+                    setTested(true);
+                    return;
+                } else {
+                    throw new Error(response.statusText);
+                }
             }
             const eval_results = await response.json();
             setResults(eval_results);
@@ -258,7 +243,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
 
         } catch (error) {
             notifications.hide(testing);
-            notifications.show({title: 'testing failed', message: `failed submitting your question: ${error}`});
+            notifications.show({title: 'testing failed', message: `failed testing your question: ${error}`});
         }
 
     };
@@ -282,9 +267,9 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                         support: support,
                         comments: comments,
                         author: {
-                            name: author,
-                            affilliation: affilliation,
-                            position: position
+                            name: author.authorName,
+                            affilliation: author.authorAffiliation,
+                            position: author.authorPosition
                         }
                     }
                 )
@@ -314,23 +299,26 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
         }
     };
 
-    const result_rows = results.map(e => (
-        <Table.Tr key={e.model}>
-            <Table.Td>{e.model}</Table.Td>
-            <Table.Td>{e.score}</Table.Td>
-            <Table.Td>{e.correct.toString()}</Table.Td>
-        </Table.Tr>
-    ));
 
-    const result_rows_full = results.map(e => (
-        <Table.Tr key={e.model}>
-            <Table.Td>{e.model}</Table.Td>
-            <Table.Td>{e.score}</Table.Td>
-            <Table.Td>{e.correct.toString()}</Table.Td>
-            <Table.Td>{e.corectlogprobs}</Table.Td>
-            <Table.Td>{e.incorrectlogprobs}</Table.Td>
-        </Table.Tr>
-    ));
+    const result_rows = useMemo(() => {
+            return results.map(e => {
+                    return (<Table.Tr key={e.model}>
+                            <Table.Td>{e.model}</Table.Td>
+                            <Table.Td>{e.score}</Table.Td>
+                            <Table.Td>{e.correct.toString()}</Table.Td>
+                            </Table.Tr>);
+                    }); } , [results]);
+
+    const result_rows_full = useMemo(() => { 
+            return results.map(e => {
+                    return (<Table.Tr key={e.model}>
+                            <Table.Td>{e.model}</Table.Td>
+                            <Table.Td>{e.score}</Table.Td>
+                            <Table.Td>{e.correct.toString()}</Table.Td>
+                            <Table.Td>{e.corectlogprobs}</Table.Td>
+                            <Table.Td>{e.incorrectlogprobs}</Table.Td>
+                            </Table.Tr>);
+                    });}, [results]);
 
     return (
         <Container>
@@ -391,40 +379,7 @@ export function QuestionsForm({author, setAuthor}: QuestionsFormProps) {
                 <TextInput required label="Reference ISBN, DOI, or XiV ID" placeholder="doi://" value={doi} onChange={(e) => { setDOI(e.currentTarget.value) }}/>
                 <Textarea label="Support" placeholder="Supporting evidence for why the answer is correct" value={support} onChange={(e) => setSupport(e.currentTarget.value)}/>
                 <Textarea label="Comments" placeholder="Optional: any other comments on the question." value={comments} onChange={(e) => setComments(e.currentTarget.value)}/>
-                <TextInput required label="Author" placeholder="Author" defaultValue={author} onChange={authorChange} />
-                <TextInput required label="Affiliation" placeholder="Affiliation" value={affilliation} onChange={(e) => setAffiliation(e.currentTarget.value)}/>
     
-                <NativeSelect
-                    required
-                    value={position}
-                    onChange={(e) => setPosition(e.currentTarget.value)}
-                    label="Position"
-                    data={
-                        position ? 
-                        allowedPositions.map(pos => ({ value: pos, label: pos })) : 
-                        [
-                            { value: '', label: 'Select position', disabled: true }, 
-                            ...allowedPositions.map(pos => ({ value: pos, label: pos }))
-                        ]
-                    }
-                    styles={() => ({
-                        input: {
-                          color: position ? 'black' : 'rgb(173, 181, 189)',
-                          '&:not(:focus):invalid': {
-                            color: 'rgb(173, 181, 189)' 
-                          }
-                        },
-                        item: {
-                          '&[data-disabled]': {
-                            color: 'rgb(173, 181, 189)', 
-                          },
-                          '&:not([data-disabled])': {
-                            color: 'black',
-                          }
-                        }
-                    })}
-                />
-
                 { edited ? <ValidationFeedback reasons={disabledReasons} /> : <></> }
                 {
                     (results.length == 0) ? 
