@@ -17,6 +17,7 @@ app = FastAPI()
 app.mount("/ui/assets/", StaticFiles(directory="ui/assets"), name="ui")
 
 
+@app.get("/ui", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/index.html", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/reviewing", response_class=FileResponse, include_in_schema=False)

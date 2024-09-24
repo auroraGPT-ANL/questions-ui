@@ -42,4 +42,4 @@ export const allowedSkills = [
     'quantifying uncertainty (i.e. speaking in probabilistic terms about possible outcomes)',
     'contextual understanding (i.e. recognizing that a general term has different senses a domain)'
 ];
-export const allowedDomains = ['physics', 'material science', 'biology', 'chemistry', 'computer science'];
+export const allowedDomains = ['physics', 'material science', 'biology', 'chemistry', 'computer science', 'mathematics', 'climate'];
