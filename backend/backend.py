@@ -24,6 +24,8 @@ app.mount("/ui/assets/", StaticFiles(directory="ui/assets"), name="ui")
 @app.get("/ui/index.html", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/reviewing", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/reviewing/index.html", response_class=FileResponse, include_in_schema=False)
+@app.get("/ui/contributions", response_class=FileResponse, include_in_schema=False)
+@app.get("/ui/contributions/index.html", response_class=FileResponse, include_in_schema=False)
 def authoring(_: Request):
     return FileResponse("ui/index.html")
 
@@ -338,7 +340,7 @@ async def test_question(question: CreateQuestionSchema):
     results: list[asyncio.Task[eval_result]] = []
     try:
         async with asyncio.TaskGroup() as tg:
-            for model in ["Llama2-7B", "Mistral-7B", "Llama3-8B"]:
+            for model in ["Llama3-8B", "Qwen2.5-7B", "Qwen2.5-14B", "Llama3-70B"]:
                 results.append(tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors)))
         task_results: list[eval_result] = [t.result() for t in results]
         return [QuestionEvalSchema(model=t.model, score=t.score, correct=t.is_correct, corectlogprobs=t.correct_log_str, incorrectlogprobs=t.incorrect_log_str) for t in task_results]
