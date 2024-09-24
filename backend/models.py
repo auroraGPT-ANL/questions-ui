@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import create_engine, Table, ForeignKey, Column, func, DateTime
+from sqlalchemy import create_engine, Table, ForeignKey, Column, func, DateTime, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, sessionmaker, relationship, mapped_column
 from typing import List,Optional
 
@@ -22,6 +22,13 @@ domains_to_questions = Table("domains_to_questions",
                             Column("question_id", ForeignKey("question.id"), primary_key=True)
                             )
 
+Skips = Table("skips",
+                            Base.metadata,
+                            Column("author_id", ForeignKey("author.id"), primary_key=True),
+                            Column("question_id", ForeignKey("question.id"), primary_key=True),
+                            Column("modified", DateTime, default=func.now(), nullable=False),
+                            UniqueConstraint('question_id', 'author_id')
+                            )
 
 class Question(Base):
     __tablename__ = "question"
@@ -38,6 +45,7 @@ class Question(Base):
     domains: Mapped[List["Domain"]] = relationship(secondary=domains_to_questions)
     author_id: Mapped[int] = mapped_column(ForeignKey("author.id"))
     author: Mapped["Author"] = relationship()
+    modified: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
 
 class Position(Base):
     __tablename__ = "position"
@@ -79,6 +87,9 @@ class Author(Base):
     affiliation: Mapped[Affiliation] = relationship()
     position_id: Mapped[int] = mapped_column(ForeignKey("position.id"))
     position: Mapped[Position] = relationship()
+    __table_args__ = (
+        UniqueConstraint('name', 'affiliation_id', 'position_id', name='ct_author_info_unique'),
+    )
 
 class Review(Base):
     __tablename__ = "review"

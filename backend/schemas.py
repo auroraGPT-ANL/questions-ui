@@ -1,15 +1,32 @@
+from enum import Enum
 from typing import Optional
 from pydantic import BaseModel
+from datetime import datetime
+
+class SystemStatus(str, Enum):
+    disabled = "disabled"
+    ready = "ready"
+    starting = "starting"
+
+class StatusSchema(BaseModel):
+    authoring: SystemStatus
 
 class History(BaseModel):
-    id: int
+    question_id: int
+    review_id: Optional[int]
     question: str
-    approved: bool
+    action: str
+    modified: datetime
 class CreateAuthorSchema(BaseModel):
     name: str
     affilliation: str
     position: str = ""
     orcid: Optional[str] = None
+    class Config:
+        from_attributes = True
+class SkipSchema(BaseModel):
+    author: CreateAuthorSchema|int
+    question_id: int
     class Config:
         from_attributes = True
 class ReviewerSchema(BaseModel):
@@ -97,5 +114,11 @@ class QuestionEvalSchema(BaseModel):
     correct: bool
     corectlogprobs: str
     incorrectlogprobs: str
+    class Config:
+        from_attributes = True
+class ContributionsSchema(BaseModel):
+    num_questions : int
+    num_validated : int
+    num_reviews : int
     class Config:
         from_attributes = True

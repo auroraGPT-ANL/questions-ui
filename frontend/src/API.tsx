@@ -1,4 +1,36 @@
-interface AuthorSchema {
+export interface ReviewSchema {
+    id: number
+    author: number
+    question_id: number
+    questionrelevent: number
+    questionfromarticle: number
+    questionindependence: number
+    questionchallenging: number
+    answerrelevent: number
+    answercomplete: number
+    answerfromarticle: number
+    answerunique: number
+    answeruncontroverial: number
+    arithmaticfree: number
+    skillcorrect: number
+    domaincorrect: number
+    comments: string
+    accept: boolean
+};
+export interface ContributionsSchema {
+    num_questions: number
+    num_validated: number
+    num_reviews: number
+};
+
+export interface AuthorSchema {
+    author: string
+    affiliation: string
+    position: string
+    orcid?: string
+}
+export interface AuthorResponseSchema {
+    id: number
     author: string
     affiliation: string
     position: string
@@ -19,7 +51,7 @@ export interface Questions {
 };
 
 export const allowedDifficulties = ['Easy (basic recall and understading)', 'Medium (application and analysis)', 'Hard (evaluation, creation, and complex problem solving)'];
-export const allowedPositions = ['Student', 'Early Career', 'Mid Career', 'Leader'];
+export const allowedPositions = ['Student', 'Early Career', 'Mid Career', 'Leader', 'AI Author/Robot'];
 export const allowedSkills = [
     'basic comprehension (i.e. retriving information using textual context clues)',
     'sumarization (i.e. condensing text while preserving semantic intent)',

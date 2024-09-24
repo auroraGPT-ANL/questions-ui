@@ -1,15 +1,17 @@
 import asyncio
-from fastapi import FastAPI, Depends, Request, Query
+from fastapi import FastAPI, Depends, Request, Query, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, FileResponse
-from sqlalchemy import select
 from sqlalchemy.orm import Session
-from typing import Optional, Tuple, Annotated
+import sqlalchemy as sa
+from typing import Optional, Annotated
 import starlette.status as status
 from models import *
 from schemas import *
 from data_access import *
-from ai import test_question_impl
+from ai import test_question_impl, eval_result
+from pprint import pprint
+import config
 
 
 app = FastAPI()
@@ -69,6 +71,21 @@ def get_author(id: int, db: Session = Depends(get_db)):
                 orcid=i.orcid,
             )
 
+
+@app.get("/api/positions", response_model=list[str])
+def list_positions(db: Session = Depends(get_db), q:str="", limit:int=100, skip:int=0):
+    if q == "":
+        return [i.name for i in db.query(Position.name).filter(Position.name != "").offset(skip).limit(limit).all()]
+    else:
+        return [i.name for i in db.query(Position.name).filter(Position.name.ilike(f"%{q.strip()}%")).offset(skip).limit(limit).all()]
+
+@app.get("/api/affiliations", response_model=list[str])
+def list_affiliations(db: Session = Depends(get_db), q:str="", limit:int=100, skip:int=0):
+    if q == "":
+        return [i.name for i in db.query(Affiliation.name).filter(Affiliation.name != "").offset(skip).limit(limit).all()]
+    else:
+        return [i.name for i in db.query(Affiliation.name).filter(Affiliation.name.ilike(f"%{q.strip()}%")).offset(skip).limit(limit).all()]
+
 @app.post("/api/question", response_model=QuestionSchema)
 def store_question(question: CreateQuestionSchema, db: Session = Depends(get_db)):
     q = create_question(db, question)
@@ -87,41 +104,31 @@ def store_question(question: CreateQuestionSchema, db: Session = Depends(get_db)
             )
 
 @app.get("/api/question", response_model=list[QuestionSchema])
-def get_questions(db: Session = Depends(get_db), skip:int=0, limit:int=100, q:Optional[str]=None, ids: Annotated[list[int] | None, Query()] = None):
-    if ids is not None:
-        return [QuestionSchema(
-                            id=i.id,
-                            question=i.question,
-                            correct_answer=i.correct_answer,
-                            distractors=[d.text for d in i.distractors],
-                            skills=[s.name for s in i.skills],
-                            domains=[d.name for d in i.domains],
-                            difficulty=i.difficulty.name,
-                            doi=i.doi,
-                            author=i.author.id,
-                            support=i.support,
-                            comments=i.comments,
-                        )
-        for i in db.query(Question).filter(Question.id.in_(ids)).all()]
-    else:
-        return [QuestionSchema(
-                    id=i.id,
-                    question=i.question,
-                    correct_answer=i.correct_answer,
-                    distractors=[d.text for d in i.distractors],
-                    skills=[s.name for s in i.skills],
-                    domains=[d.name for d in i.domains],
-                    difficulty=i.difficulty.name,
-                    doi=i.doi,
-                    author=i.author.id,
-                    support=i.support,
-                    comments=i.comments,
-                )
-                for i in list_questions(db, skip, limit, query=q)]
+def get_questions(db: Session = Depends(get_db), author_id: Optional[int] = None, skip:int=0, limit:int=100, q:Optional[str]=None, ids: Annotated[list[int] | None, Query()] = None):
+    return [QuestionSchema(
+                id=i.id,
+                question=i.question,
+                correct_answer=i.correct_answer,
+                distractors=[d.text for d in i.distractors],
+                skills=[s.name for s in i.skills],
+                domains=[d.name for d in i.domains],
+                difficulty=i.difficulty.name,
+                doi=i.doi,
+                author=i.author.id,
+                support=i.support,
+                comments=i.comments,
+            )
+            for i in list_questions(db, skip, limit, author_id=author_id, query=q, ids=ids)]
 
 @app.get("/api/question/{id}", response_model=QuestionSchema)
 def get_question(id :int, db: Session = Depends(get_db)):
-    i = db.query(Question).get(id)
+    i = db.query(Question).options(
+            joinedload(Question.author),
+            joinedload(Question.distractors),
+            joinedload(Question.domains),
+            joinedload(Question.skills),
+            joinedload(Question.difficulty)
+            ).get(id)
     if i is None:
         raise KeyError(f"question {id} is not found")
     return QuestionSchema(
@@ -139,7 +146,13 @@ def get_question(id :int, db: Session = Depends(get_db)):
             )
 
 @app.get("/api/review", response_model=list[ReviewSchema])
-def list_reviews(limit:int=100, skip:int=0, db: Session =Depends(get_db)):
+def list_reviews(limit:int=100, reviewer_id:Optional[int]=None, question_id:Optional[int]=None, skip:int=0, db: Session =Depends(get_db)):
+    query  = db.query(Review)
+    if reviewer_id is not None:
+        query = query.filter(Review.author_id == reviewer_id)
+    if question_id is not None:
+        query = query.filter(Review.question_id == question_id)
+    query = query.limit(limit).offset(skip).all()
     return [ReviewSchema(
         id=r.id,
         author=r.author.id,
@@ -158,7 +171,7 @@ def list_reviews(limit:int=100, skip:int=0, db: Session =Depends(get_db)):
         domaincorrect=r.domaincorrect,
         comments=r.comments,
         accept=r.accept,
-    ) for r in db.query(Review).limit(limit).offset(skip).all()]
+    ) for r in query]
 
 @app.get("/api/review/{review_id}", response_model=ReviewSchema)
 def get_review(review_id:int, db: Session =Depends(get_db)):
@@ -230,6 +243,17 @@ def update_review(review_id:int, review: CreateReviewSchema, db: Session =Depend
         KeyError(f"Review {review_id} is not found")
 
 
+@app.post("/api/skip")
+def skip_review(skip_request: SkipSchema, db: Session =Depends(get_db)):
+    author = create_or_select_author(db, skip_request.author)
+    try:
+        db.execute(Skips.insert().values(author_id=author.id, question_id=skip_request.question_id))
+        db.commit()
+    except sa.exc.IntegrityError:
+        #ignore attempts to insert the same skip multiple times
+        pass
+
+
 @app.post("/api/review", response_model=ReviewSchema)
 def store_review(review: CreateReviewSchema, db: Session =Depends(get_db)):
     r = create_review(db, review)
@@ -254,23 +278,82 @@ def store_review(review: CreateReviewSchema, db: Session =Depends(get_db)):
     )
 
 @app.get("/api/reviewhistory/{author_id}", response_model=list[History])
-def reviewer_history(author_id: int, db: Session = Depends(get_db), limit:int=100, skip:int=0):
-    return [History(
-                id=h.id,
-                question=h.question.question,
-                approved=h.accept
-            ) for h in db.query(Review).filter(Review.author_id == author_id).limit(limit).offset(skip).all()]
+def reviewer_history(author_id: int, db: Session = Depends(get_db), limit:int=10, skip:int=0):
+    reviews = (db.query(Review.id, sa.case((Review.accept == True, 'approved'),
+                                          else_='rejected').label("accept"),
+                       Question.question.label("question"),
+                       Review.question_id.label("question_id"),
+                       Review.modified.label("modified"))
+                       .join(Question, Question.id == Review.question_id)
+                       .filter(Review.author_id == author_id)
+               )
+    skips = (db.query(sa.sql.null(),
+                     sa.sql.literal('skip').label("skipped"),
+                     Question.question.label("question"),
+                     Skips.c.question_id.label("question_id"),
+                     Skips.c.modified.label("modified"))
+             .join(Question, Question.id == Skips.c.question_id)
+             .filter(Skips.c.author_id == author_id)
+             )
+    history = reviews.union_all(skips).order_by(sa.desc('modified')).limit(limit).offset(skip).all()
 
+    return [History(
+                question_id=h.question_id,
+                review_id=h.id,
+                question=h.question,
+                action=h.accept,
+                modified=h.modified
+            ) for h in history]
+
+@app.get("/api/reports/validated", response_model=list[QuestionSchema])
+def reported_validated_questions(validations:int =3, db: Session = Depends(get_db)):
+    return [
+        QuestionSchema(
+                            id=i.id,
+                            question=i.question,
+                            correct_answer=i.correct_answer,
+                            distractors=[d.text for d in i.distractors],
+                            skills=[s.name for s in i.skills],
+                            domains=[d.name for d in i.domains],
+                            difficulty=i.difficulty.name,
+                            doi=i.doi,
+                            author=i.author.id,
+                            support=i.support,
+                            comments=i.comments,
+                        )
+        for i in validated_questions(db, validations)
+    ]
+
+
+@app.get("/api/contributions/{author_id}", response_model=ContributionsSchema)
+def get_contributions(author_id : int, validations: int = 3, db: Session = Depends(get_db)):
+    return contributions(db, author_id, validations=validations)
 
 @app.post("/api/review_batch", response_model=list[int])
-def get_review_batch(reviewer: ReviewerSchema, db: Session = Depends(get_db), limit:int=10):
-    return [r.id for r in select_review_batch(db, reviewer, limit)]
+def get_review_batch(reviewer: ReviewerSchema, db: Session = Depends(get_db), limit:int=10, validations:int = 1):
+    return [r.id for r in select_review_batch(db, reviewer, limit, validations)]
 
 @app.post("/api/test_question", response_model=list[QuestionEvalSchema])
 async def test_question(question: CreateQuestionSchema):
-    results: list[Tuple[str, asyncio.Task[Tuple[bool, float, str, str]]]] = []
-    async with asyncio.TaskGroup() as tg:
-        for model in ["Llama2-7B", "Mistral-7B", "Llama3-8B"]:
-            results.append((model, tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors))))
-    return [QuestionEvalSchema(model=m, score=t.result()[1], correct=t.result()[0], corectlogprobs=t.result()[2], incorrectlogprobs=t.result()[3]) for (m,t) in results]
+    results: list[asyncio.Task[eval_result]] = []
+    try:
+        async with asyncio.TaskGroup() as tg:
+            for model in ["Llama2-7B", "Mistral-7B", "Llama3-8B"]:
+                results.append(tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors)))
+        task_results: list[eval_result] = [t.result() for t in results]
+        return [QuestionEvalSchema(model=t.model, score=t.score, correct=t.is_correct, corectlogprobs=t.correct_log_str, incorrectlogprobs=t.incorrect_log_str) for t in task_results]
+    except* TimeoutError as e:
+        err_msgs = []
+        for i in e.exceptions:
+            err_msgs.append(repr(i))
+        raise HTTPException(status_code=503, detail="\n".join(err_msgs))
 
+        
+
+@app.get("/api/status", response_model=StatusSchema)
+def get_status():
+    #todo check if inference backend is online and serving requests
+    # if it is not yet started, this api should request a start
+    return StatusSchema(
+        authoring= SystemStatus.ready if config.BACKEND_READY else SystemStatus.disabled
+    )
