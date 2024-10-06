@@ -61,6 +61,7 @@ export function QuestionsInstructions() {
                 <li>We are looking for verifiable scientific facts.  We are not soliciting your opinions.</li>
                 <li>By submitting your contribution, you understand that the question may be used for evaluation of AuroraGPT and you acknowledge that you have the rights to submit your question for this intended purpose. </li>
                 <li>The answer to the question should be referenced with a published paper or a scientific textbook. Please be prepared to provide the DOI or XiV ID of the paper or the ISBN of the book as a reference when submitting your question.</li>
+                <li>Your question should answerable without the specific text of the paper, and appropriate for a graduate student in your field</li>
                 <li>Your question must be a multiple-choice question with only 1 correct answer. These are the easiest to evaluate.</li>
                 <li>Your question should be appropriate for a first-year graduate-level student.</li>
                 <li>Your question should avoid controversial or undecided questions in your field.</li>
