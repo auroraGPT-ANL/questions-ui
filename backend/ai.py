@@ -1,12 +1,11 @@
 import asyncio
 import math
+import json
 import openai
 from openai import AsyncOpenAI, types
-from typing import Tuple, List, cast
+from typing import Tuple, List, cast, Optional
 from config import LLM_API_BASE_URL, BACKEND_READY, MODEL_NAME_MAP
 from dataclasses import dataclass
-
-ASYNC_LLM_CLIENT = AsyncOpenAI(base_url=LLM_API_BASE_URL, api_key='EMPTY')
 
 async def get_loglikelihood_async(
     client: AsyncOpenAI,
@@ -38,8 +37,9 @@ async def get_loglikelihood_async(
         temperature=0.0,
         logprobs=1,
     )
-    token_logprobs = cast(list[float], cast(types.completion_choice.Logprobs, completion.choices[0].logprobs).token_logprobs)
-    loglikelihood = sum(token_logprobs[context_num_tokens:])/len(token_logprobs[context_num_tokens:])
+    token_logprobs = cast(list[Optional[float]], cast(types.completion_choice.Logprobs, completion.choices[0].logprobs).token_logprobs)
+    sequence: list[float] = [i for i in token_logprobs[context_num_tokens:] if i is not None]
+    loglikelihood = sum(sequence)/len(sequence)
     return loglikelihood, len(token_logprobs[context_num_tokens:])
 
 @dataclass
@@ -55,10 +55,12 @@ async def test_question_impl(
         question: str,
         correct_answer: str,
         incorrect_answers: List[str],
+        api_key: str
         ) -> eval_result:
     if BACKEND_READY:
         try:
             model = MODEL_NAME_MAP[model]
+            ASYNC_LLM_CLIENT = AsyncOpenAI(base_url=LLM_API_BASE_URL, api_key=api_key)
             correct_loglikelihood, correct_token_count = await get_loglikelihood_async(ASYNC_LLM_CLIENT, question, correct_answer, model)
             incorrect_responses = await asyncio.gather(
                 *[get_loglikelihood_async(ASYNC_LLM_CLIENT, question, incorrect_answer, model) for incorrect_answer in incorrect_answers]
@@ -73,6 +75,7 @@ async def test_question_impl(
             return eval_result(answer_correctly, score, correct_log_str, incorrect_logs_str, model)
         except openai.APITimeoutError:
             raise TimeoutError(f"{model} timed out")
-    else:
-        return eval_result(False, 0.0, "", "", model)
+        except openai.BadRequestError:
+            pass
+    return eval_result(False, 0.0, "", "", model)
 

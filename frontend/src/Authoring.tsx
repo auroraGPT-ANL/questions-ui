@@ -7,11 +7,13 @@ import {AuthorInfoCallbackData, AuthorInfo} from "./AuthorInfo";
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import {allowedDifficulties, allowedSkills, allowedDomains} from './API'
+import { useGlobusAuth } from '@globus/react-auth-context';
 
 export function QuestionAuthoring() {
+    const {isAuthenticated, authorization} = useGlobusAuth();
     const [authorInfo, setAuthorInfo] = useState<AuthorInfoCallbackData>({
-        authorName: "",
-        authorAffiliation: "",
+        authorName: authorization?.user?.name || "",
+        authorAffiliation: authorization?.user?.organization || "",
         orcid: "",
         authorPosition: "",
         reviewerSkills: [],
@@ -30,10 +32,10 @@ export function QuestionAuthoring() {
             <HeaderSimple title="AI4Science Questions" reconfigure={reconfigure} author={authorInfo.authorName} />
             <Container>
             {
-            (configured == true)?
+            (configured && isAuthenticated)?
                 ( <QuestionsForm author={authorInfo} /> ):
                 (
-                    <AuthorInfo actionTitle="Authoring" configureAuthor={configureAuthor} defaults={authorInfo}/>
+                    <AuthorInfo authRequired={true} actionTitle="Authoring" configureAuthor={configureAuthor} defaults={authorInfo}/>
                  )
             }
             </Container>
@@ -92,6 +94,7 @@ interface QuestionsFormProps {
 };
 
 export function QuestionsForm({author}: QuestionsFormProps) {
+    const {authorization, isAuthenticated} = useGlobusAuth();
     const [edited, setEdited] = useState(false);
     const [question, setQuestionImpl] = useState('');
     const setQuestion = (value: string) => {
@@ -201,10 +204,15 @@ export function QuestionsForm({author}: QuestionsFormProps) {
     const testQuestion = async () => {
         const testing = notifications.show({title: 'testing question', message: 'please wait upto 5 minutes for cold starts', autoClose: false});
         try {
+            if(!isAuthenticated) {
+                throw new Error("Globus Authentication Problem, please logout and try again");
+            }
+            console.log(authorization)
             const response = await fetch(import.meta.env.BASE_URL + '../api/test_question', {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer: ${authorization?.tokens?.getByResourceServer('681c10cc-f684-4540-bcd7-0b4df3bc26ef')?.access_token}`
                 },
                body: JSON.stringify(
                     {

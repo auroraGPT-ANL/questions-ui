@@ -1,0 +1,16 @@
+import { useGlobusAuth } from '@globus/react-auth-context';
+
+export function Login() {
+    const { isAuthenticated, authorization } = useGlobusAuth();
+
+    return (isAuthenticated)?
+        (<>
+            <h1>Authenticated</h1>
+            <button onClick={async () => await authorization?.revoke() }>logout</button>
+         </>):
+        (<>
+            <h1>Logged out</h1>
+            <button onClick={async () => await authorization?.login()} >login</button>
+         </>)
+        ;
+}

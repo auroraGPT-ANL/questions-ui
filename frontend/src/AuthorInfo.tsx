@@ -1,8 +1,9 @@
 import {allowedDomains, allowedPositions} from './API';
-
+import { useGlobusAuth } from '@globus/react-auth-context';
 import { Button, Flex, MultiSelect, TextInput , NativeSelect, Autocomplete} from '@mantine/core';
 import '@mantine/core/styles.css';
 import { useState, useMemo , useEffect} from 'react';
+import debounce from 'lodash.debounce';
 
 export interface AuthorInfoCallbackData {
     authorName: string
@@ -15,9 +16,11 @@ export interface AuthorInfoProps {
     configureAuthor: (authorInfo: AuthorInfoCallbackData) => void
     defaults: AuthorInfoCallbackData
     actionTitle: string
+    authRequired: boolean
 }
 
-export function AuthorInfo({actionTitle, configureAuthor: configureReviewer, defaults}: AuthorInfoProps) {
+export function AuthorInfo({authRequired, actionTitle, configureAuthor: configureReviewer, defaults}: AuthorInfoProps) {
+    const { isAuthenticated, authorization } = useGlobusAuth();
     const [authorName, setAuthorName] = useState(defaults.authorName || "");
     const [authorPosition, setAuthorPosition] = useState(defaults.authorPosition || "");
     const [authorAffiliation, setAuthorInstition] = useState(defaults.authorAffiliation || "");
@@ -25,12 +28,23 @@ export function AuthorInfo({actionTitle, configureAuthor: configureReviewer, def
     const [reviewerSkills, setReviewerSkills] = useState<string[]>(defaults.reviewerSkills || []);
     const [affiliations, setAffiliations] = useState<string[]>([]);
 
+    //login should initialize name and affiliation if they are not setup
+    useEffect(() => {
+        if(isAuthenticated && defaults.authorName === "" && authorName === "") {
+            setAuthorName(authorization?.user?.name!);
+        }
+        if(isAuthenticated && defaults.authorAffiliation === "" && authorAffiliation === "") {
+            setAuthorInstition(authorization?.user?.organization!);
+        }
+    },[isAuthenticated, authorization, defaults, authorAffiliation, authorName])
+
     const readyToReview = useMemo(() => {
         if (authorName === "") return false;
         if (authorAffiliation === "") return false;
         if (reviewerSkills.length === 0) return false;
+        if (authRequired && !isAuthenticated) return false;
         return true;
-    }, [authorName, authorAffiliation, reviewerSkills, authorPosition]);
+    }, [authorName, authorAffiliation, reviewerSkills, authorPosition, authRequired, isAuthenticated]);
 
     const configure = () => {
         configureReviewer({
@@ -42,7 +56,7 @@ export function AuthorInfo({actionTitle, configureAuthor: configureReviewer, def
         });
     }
     useEffect(() => {
-        const fn = async () => {
+        const fn = debounce(async () => {
             if(authorAffiliation.length >= 2) {
                 const response = await ((authorAffiliation == "")
                     ? fetch(import.meta.env.BASE_URL + '../api/affiliations')
@@ -51,7 +65,7 @@ export function AuthorInfo({actionTitle, configureAuthor: configureReviewer, def
                 const affiliations = await response.json();
                 setAffiliations(affiliations);
             }
-        };
+        });
         fn();
 
     }, [authorAffiliation]);
@@ -100,12 +114,19 @@ export function AuthorInfo({actionTitle, configureAuthor: configureReviewer, def
             }, [reviewerSkills, allowedDomains, setReviewerSkills]);
 
     const affiliationElem = useMemo(() => {
-        return (
+        return             (
             <Autocomplete required value={authorAffiliation} onChange={setAuthorInstition}  label="Affiliation" placeholder="What is your primary affiliation? e.g. Argonne National Laboratory" data={affiliations}/>
         );
     }, [authorAffiliation, affiliations]);
 
-    return (
+    return (authRequired && !isAuthenticated)?
+            <>
+            <h1>Globus Authentication is Now Required to Author Questions</h1>
+            <button onClick={async () => await authorization?.login()} >login</button>
+            </>
+: (
+(
+            <>
             <Flex direction="column">
             <TextInput required value={authorName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAuthorName(e.currentTarget.value)}}  label="Name" placeholder="What is your name?" />
             {affiliationElem}
@@ -113,5 +134,7 @@ export function AuthorInfo({actionTitle, configureAuthor: configureReviewer, def
             {positionElem}
             {skillsElem}
             <Button disabled={!readyToReview} onClick={(_e: React.MouseEvent) => { configure() }}>start {actionTitle.toLowerCase()}</Button>
-            </Flex>);
+            </Flex>
+            </>
+    )            );
 }

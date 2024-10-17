@@ -565,7 +565,7 @@ export function QuestionReviewing () {
              </Container>
              </Grid.Col>
              </Grid>): (
-             <AuthorInfo actionTitle="Reviewing" configureAuthor={configureReviewer} defaults={authorInfo} />
+             <AuthorInfo authRequired={false} actionTitle="Reviewing" configureAuthor={configureReviewer} defaults={authorInfo} />
                  )}
             </Container> 
                 </>);

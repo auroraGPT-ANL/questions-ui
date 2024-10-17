@@ -20,8 +20,15 @@ npm run build
 cd ../backend
 pip install -r ./requirements.txt
 
+#forward requests to the ai-backend running behind the ANL firewall
+ssh -J $ANL_USER@login.cels.anl.gov -D 127.0.0.1:10106 $ANL_USER@agpt-questions-vmw-01.cels.anl.gov
+export ALL_PROXY=socks5://127.0.0.1:10106
+
 # run the backend that hosts the frontend
 unicorn --reload backend:app
+
+# run the frontend with hot-reloading, this will proxy requests to the backend
+npm run dev
 ```
 
 # Deployment
@@ -57,3 +64,8 @@ You also have privileges to:
 
 All other requests need to go through CELS support `help@cels.anl.gov`.
 
+
+# Debugging requests to the AI Backend
+
+Requests are set over HTTPS to the globus compute backend, you can intercept these with a tool like wireshark.
+To do that you'll need to set `SSLKEYLOGFILE` before starting the backend, and then configure wireshark preferences -> protocols -> tls -> master secret log file name to point to this file.

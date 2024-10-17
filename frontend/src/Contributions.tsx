@@ -85,7 +85,7 @@ export function Contributions() {
         return (<>
         {header}
         <Container>
-            <AuthorInfo configureAuthor={configureAuthor} defaults={authorInfo} actionTitle="Reviewing Contributions"  />
+            <AuthorInfo authRequired={false} configureAuthor={configureAuthor} defaults={authorInfo} actionTitle="Reviewing Contributions"  />
             </Container>
         </>);
     }
