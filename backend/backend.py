@@ -346,7 +346,7 @@ async def test_question(question: CreateQuestionSchema, authorization: Annotated
                 results.append(tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors, api_key)))
         task_results: list[eval_result] = [t.result() for t in results]
         return [QuestionEvalSchema(model=t.model, score=t.score, correct=t.is_correct, corectlogprobs=t.correct_log_str, incorrectlogprobs=t.incorrect_log_str) for t in task_results]
-    except* TimeoutError as e:
+    except TimeoutError as e:
         err_msgs = []
         for i in e.exceptions:
             err_msgs.append(repr(i))
@@ -361,3 +361,129 @@ def get_status():
     return StatusSchema(
         authoring= SystemStatus.ready if config.BACKEND_READY else SystemStatus.disabled
     )
+
+
+@app.get("/api/experiments/{experiment_id}", response_model=ExperimentLogSchema)
+def get_experiment(experiment_id: int, db: Session = Depends(get_db)):
+    experiment = db.query(ExperimentLog).filter(ExperimentLog.id == experiment_id).first()
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    return experiment
+
+
+@app.post("/api/experiments/", response_model=int)
+def create_experiment(experiment: ExperimentLogSchema, db: Session = Depends(get_db)):
+    new_experiment = ExperimentLog(
+        author_id=experiment.author_id,
+        preliminary_evaluation_id=experiment.preliminary_evaluation_id,
+        final_evaluation_id=experiment.final_evaluation_id
+    )
+    db.add(new_experiment)
+    db.commit()
+    db.refresh(new_experiment)
+    return new_experiment.id
+
+
+@app.get("/api/experiment_turns/{turn_id}", response_model=ExperimentTurnSchema)
+def get_experiment_turn(turn_id: int, db: Session = Depends(get_db)):
+    turn = db.query(ExperimentTurn).filter(ExperimentTurn.id == turn_id).first()
+    if not turn:
+        raise HTTPException(status_code=404, detail="Turn not found")
+    return turn
+
+
+@app.post("/api/experiment_turns/", response_model=int)
+def create_experiment_turn(turn: ExperimentTurnSchema, db: Session = Depends(get_db)):
+    new_turn = ExperimentTurn(
+        experiment_id=turn.experiment_id,
+        previous_turn=turn.previous_turn,
+        turn=turn.turn,
+        goal=turn.goal,
+        prompt=turn.prompt,
+        discussion=turn.discussion
+    )
+    db.add(new_turn)
+    db.commit()
+    db.refresh(new_turn)
+    return new_turn.id
+
+
+@app.get("/api/skills/{skill_id}", response_model=AiSkillSchema)
+def get_skill(skill_id: int, db: Session = Depends(get_db)):
+    skill = db.query(AiSkill).filter(AiSkill.id == skill_id).first()
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return skill
+
+
+@app.post("/api/skills/", response_model=int)
+def create_skill(skill: AiSkillSchema, db: Session = Depends(get_db)):
+    new_skill = AiSkill(
+        name=skill.name,
+        description=skill.description,
+        skill_category=skill.skill_category,
+        level=skill.level
+    )
+    db.add(new_skill)
+    db.commit()
+    db.refresh(new_skill)
+    return new_skill.id
+
+
+@app.get("/api/preliminary_evaluations/{evaluation_id}", response_model=PreliminaryEvaluationSchema)
+def get_preliminary_evaluation(evaluation_id: int, db: Session = Depends(get_db)):
+    evaluation = db.query(PreliminaryEvaluation).filter(PreliminaryEvaluation.id == evaluation_id).first()
+    if not evaluation:
+        raise HTTPException(status_code=404, detail="Evaluation not found")
+    return evaluation
+
+
+@app.post("/api/final_evaluations/", response_model=int)
+def create_final_evaluation(evaluation: FinalEvaluationSchema, db: Session = Depends(get_db)):
+    new_evaluation = FinalEvaluation(
+        overall_id=evaluation.overall,
+        novelty_id=evaluation.novelty,
+        productivity_id=evaluation.productivity,
+        teamwork_id=evaluation.teamwork,
+        completeness_id=evaluation.completeness,
+        overall_justification=evaluation.overall_justification,
+        novelty_justification=evaluation.novelty_justification,
+        productivity_justification=evaluation.productivity_justification,
+        teamwork_justification=evaluation.teamwork_justification,
+        completeness_justification=evaluation.completeness_justification,
+        productivity_improvement=evaluation.productivity_improvement,
+        event_improvement=evaluation.event_improvement
+    )
+    db.add(new_evaluation)
+    db.commit()
+    db.refresh(new_evaluation)
+    return new_evaluation.id
+
+
+@app.get("/api/experiment_turn_evaluations/{turn_evaluation_id}", response_model=ExperimentTurnEvaluationSchema)
+def get_experiment_turn_evaluation(turn_evaluation_id: int, db: Session = Depends(get_db)):
+    evaluation = db.query(ExperimentTurnEvaluation).filter(ExperimentTurnEvaluation.id == turn_evaluation_id).first()
+    if not evaluation:
+        raise HTTPException(status_code=404, detail="Turn evaluation not found")
+    return evaluation
+
+
+@app.get("/api/experiment_turn_files/{turn_id}", response_model=list[ExperimentTurnFilesSchema])
+def get_experiment_turn_files(turn_id: int, db: Session = Depends(get_db)):
+    files = db.query(ExperimentTurnFiles).filter(ExperimentTurnFiles.turn_id == turn_id).all()
+    return files
+
+
+@app.post("/api/experiment_turn_files/", response_model=int)
+def create_experiment_turn_file(file_data: ExperimentTurnFilesSchema, db: Session = Depends(get_db)):
+    new_file = ExperimentTurnFiles(
+        turn_id=file_data.turn_id,
+        file_path=file_data.file_path
+    )
+    db.add(new_file)
+    db.commit()
+    db.refresh(new_file)
+    return new_file.id
+
+
+# @app.post("/api/")

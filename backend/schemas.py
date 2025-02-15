@@ -122,3 +122,87 @@ class ContributionsSchema(BaseModel):
     num_reviews : int
     class Config:
         from_attributes = True
+
+class AiExperienceLevelSchema(BaseModel):
+    id: int
+    description: str
+    class Config:
+        from_attributes = True
+
+
+class AuthorExperienceSchema(BaseModel):
+    author_id: AuthorSchema|int
+    ai_experience_level: AiExperienceLevelSchema|int
+    class Config:
+        from_attributes = True
+
+class AiSkillSchema(BaseModel):
+    id: int
+    name: str
+    description: str
+    skill_category: int
+    level: int
+    class Config:
+        from_attributes = True
+
+class AiSkillCategorySchema(BaseModel):
+    id: int
+    name: str
+    description: str
+    class Config:
+        from_attributes = True
+
+class FinalEvaluationSchema(BaseModel):
+    id: int
+    overall: AiSkillSchema|int
+    novelty: AiSkillSchema|int
+    productivity: AiSkillSchema|int
+    teamwork: AiSkillSchema|int
+    completeness: AiSkillSchema|int
+    overall_justification: str
+    novelty_justification: str
+    productivity_justification: str
+    teamwork_justification: str
+    completeness_justification: str
+    productivity_improvement: str
+    event_improvement: str
+    class Config:
+        from_attributes = True
+
+class ExperimentLogSchema(BaseModel):
+    id: int
+    author_id: AuthorSchema|int
+    preliminary_evaluation_id: int
+    final_evaluation_id: FinalEvaluationSchema|int
+    class Config:
+        from_attributes = True
+
+class ExperimentTurnSchema(BaseModel):
+    id: int
+    experiment_id: ExperimentLogSchema|int
+    previous_turn: int
+    turn: str
+    goal: str
+    prompt: str
+    discussion: str
+    class Config:
+        from_attributes = True
+
+class PreliminaryEvaluationSchema(BaseModel):
+    id: int
+    title: str
+    description: str
+    complexity_id: AiSkillSchema|int
+    class Config:
+        from_attributes = True
+
+class ExperimentTurnEvaluationSchema(BaseModel):
+    turn_id: ExperimentTurnSchema|int
+    skill_id: AiSkillSchema|int
+    skill_level: str 
+    class Config:
+        from_attributes = True
+
+class ExperimentTurnFilesSchema(BaseModel):
+    turn_id: ExperimentTurnSchema|int
+    file_path: str
