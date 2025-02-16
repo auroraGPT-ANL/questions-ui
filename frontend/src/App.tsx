@@ -16,9 +16,9 @@ function NotFound() {
 	return <h1>Not Found "{location.pathname}"</h1>;
 }
 
-const GLOBUS_AUTH_CLIENT_ID = "58fdd3bc-e1c3-4ce5-80ea-8d6b87cfb944";
+const GLOBUS_AUTH_CLIENT_ID = "924dcf96-3590-4486-97b9-687500f18b7d";
 const GLOBUS_AUTH_REDIRECT =  
-    "http://" + window.location.hostname + ((window.location.port!=="")?(":" + window.location.port):("")) + import.meta.env.BASE_URL;
+    window.location.protocol + "//" + window.location.hostname + ((window.location.port!=="")?(":" + window.location.port):("")) + import.meta.env.BASE_URL;
 const GLOBUS_GATEWAY_CLIENT_ID = "681c10cc-f684-4540-bcd7-0b4df3bc26ef";
 const GLOBUS_AUTH_SCOPES = `https://auth.globus.org/scopes/${GLOBUS_GATEWAY_CLIENT_ID}/action_all`;
 

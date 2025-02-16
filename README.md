@@ -36,6 +36,8 @@ npm run dev
 To administer the site deployment, you'll need a CELS account and to be part of the group
 `AuroraGPTQuestions` contact @robertu94 to be added.
 
+There is a [Globus App entry](https://app.globus.org/settings/developers/projects/53651812-5228-4422-8067-cb01e3538a11/apps).  For access request through @robertu94
+
 There is a mailing list `agptquestionsform@cels.lists.anl.gov` for support for
 external users.  Contact @robertu94 to be added to this.
 
@@ -50,6 +52,8 @@ responsible for managing it.
 
 To access the site, you'll need to [ssh to the CELS GCE environment](https://help.cels.anl.gov/docs/linux/ssh/).
 
+The deployment at ANL has a simple PHP based proxy server to relay requests to the backend hosted on GCE.  You can find the source for this `/nfs/pub_html/gce/projects/auroragptquestions/index.php` and the Apache access control file in  `/nfs/pub_html/gce/projects/auroragptquestions/.htaccess`
+
 From there you can `ssh $USER@agpt-questions-vmw-01` to access the VM. The app itself is deployed in `/app`
 
 The deployment is administered using a service account `agpt` without privileges.
@@ -61,6 +65,8 @@ You also have privileges to:
 + check the logs `sudo journalctl -u questionsui.service`
 + edit the systemd service file `sudoedit /etc/systemd/system/questionsui.service` for this sevice
 + edit any files in `/app`
+
+If you need more permissions than this, Robert Underwood, Franck Cappello, and CELS support have administrative priviledges.
 
 All other requests need to go through CELS support `help@cels.anl.gov`.
 

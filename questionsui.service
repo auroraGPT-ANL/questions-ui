@@ -7,6 +7,8 @@ Requires=mysql.service network-online.target
 Type=exec
 User=agpt
 ExecStart=/bin/bash /app/questions-ui/startapp.sh
+RestartSec=3
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
