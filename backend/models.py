@@ -41,11 +41,8 @@ class Question(Base):
     distractors: Mapped[List["Distractor"]] = relationship()
     difficulty_id: Mapped[int] = mapped_column(ForeignKey("difficulty.id"))
     difficulty: Mapped["Difficulty"] = relationship()
-    # skills: Mapped[List["Skill"]] = relationship(secondary=skills_to_questions)
-    # domains: Mapped[List["Domain"]] = relationship(secondary=domains_to_questions)
-    # Use string references and add back_populates: the function based method was creating cross-dependency with self.
-    skills: Mapped[List["Skill"]] = relationship("Skill", secondary="skills_to_questions", back_populates="questions")
-    domains: Mapped[List["Domain"]] = relationship("Domain", secondary="domains_to_questions", back_populates="questions")
+    skills: Mapped[List["Skill"]] = relationship(secondary=skills_to_questions)
+    domains: Mapped[List["Domain"]] = relationship(secondary=domains_to_questions)
     author_id: Mapped[int] = mapped_column(ForeignKey("author.id"))
     author: Mapped["Author"] = relationship()
     modified: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
@@ -133,17 +130,15 @@ class AuthorExperience(Base):
 class AiSkillCategory(Base):
     __tablename__ = "ai_skill_category"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column()
-    description: Mapped[str] = mapped_column()
+    name: Mapped[str] = mapped_column(unique=True)
 
 class AiSkill(Base):
     __tablename__ = "ai_skill"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column()
     skill_category_id: Mapped[int] = mapped_column(ForeignKey("ai_skill_category.id"))
     skill_category: Mapped[AiSkillCategory] = relationship()
-    level: Mapped[int] = mapped_column()
+    level: Mapped[str] = mapped_column()
 
 class FinalEvaluation(Base):
     __tablename__ = "final_evaluation"
@@ -168,45 +163,46 @@ class FinalEvaluation(Base):
     teamwork: Mapped[AiSkill] = relationship(foreign_keys=[teamwork_id])
     completeness: Mapped[AiSkill] = relationship(foreign_keys=[completeness_id])
 
+class PreliminaryEvaluation(Base):
+    __tablename__ = "preliminary_evaluation"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column()
+    model: Mapped[str] = mapped_column()
+    experience_id: Mapped[str] = mapped_column(ForeignKey("ai_skill.id"))
+    difficulty_id: Mapped[int] = mapped_column(ForeignKey("ai_skill.id"))
+
+    experience: Mapped[AiSkill] = relationship(foreign_keys=[experience_id])
+    difficulty: Mapped[AiSkill] = relationship(foreign_keys=[difficulty_id])
+
 class ExperimentLog(Base):
     __tablename__ = "experiment_log"
     id: Mapped[int] = mapped_column(primary_key=True)
     author_id: Mapped[int] = mapped_column(ForeignKey("author.id"))
-    preliminary_evaluation_id: Mapped[int] = mapped_column(ForeignKey("preliminary_evaluation.id"))
-    final_evaluation_id: Mapped[int] = mapped_column(ForeignKey("final_evaluation.id"))
+    preliminary_evaluation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("preliminary_evaluation.id"))
+    final_evaluation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("final_evaluation.id"))
 
-    author: Mapped[Author] = relationship()
-    final_evaluation: Mapped[FinalEvaluation] = relationship()
+    author: Mapped[Optional[Author]] = relationship()
+    final_evaluation: Mapped[Optional[FinalEvaluation]] = relationship()
 
 class ExperimentTurn(Base):
     __tablename__ = "experiment_turn"
     id: Mapped[int] = mapped_column(primary_key=True)
     experiment_id: Mapped[int] = mapped_column(ForeignKey("experiment_log.id"))
     previous_turn_id: Mapped[Optional[int]] = mapped_column(ForeignKey("experiment_turn.id"), nullable=True)
-    turn: Mapped[str] = mapped_column()
+    output: Mapped[str] = mapped_column()
     goal: Mapped[str] = mapped_column()
     prompt: Mapped[str] = mapped_column()
-    discussion: Mapped[str] = mapped_column()
 
     experiment: Mapped[ExperimentLog] = relationship()
     previous_turn: Mapped[Optional["ExperimentTurn"]] = relationship(remote_side=[id])
-
-class PreliminaryEvaluation(Base):
-    __tablename__ = "preliminary_evaluation"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(nullable=False)
-    description: Mapped[str] = mapped_column()
-    complexity_id: Mapped[int] = mapped_column(ForeignKey("ai_skill.id"))
-    model: Mapped[str] = mapped_column()
-    # experience same as complexity?
-    complexity: Mapped[AiSkill] = relationship()
 
 class ExperimentTurnEvaluation(Base):
     __tablename__ = "experiment_turn_evaluation"
     id: Mapped[int] = mapped_column(primary_key=True)
     turn_id: Mapped[int] = mapped_column(ForeignKey("experiment_turn.id"))
     skill_id: Mapped[int] = mapped_column(ForeignKey("ai_skill.id"))
-    skill_level: Mapped[str] = mapped_column(nullable=False)
+    skill_comments: Mapped[str] = mapped_column(nullable=False)
 
     turn: Mapped[ExperimentTurn] = relationship()
     skill: Mapped[AiSkill] = relationship()

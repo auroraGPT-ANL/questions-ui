@@ -42,8 +42,8 @@ export interface AuthorSchema {
 }
 export interface AuthorResponseSchema {
     id: number
-    author: string
-    affiliation: string
+    name: string
+    affilliation: string
     position: string
     orcid?: string
 }

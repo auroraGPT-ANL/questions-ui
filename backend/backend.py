@@ -1,5 +1,6 @@
 import asyncio
-from fastapi import FastAPI, Depends, Request, Query, HTTPException, Header
+from fastapi import FastAPI, Depends, Request, Query, HTTPException, Header, UploadFile, File, Form
+from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
@@ -11,8 +12,11 @@ from schemas import *
 from data_access import *
 from ai import test_question_impl, eval_result
 from pprint import pprint
+import uuid
 import config
 
+FILES_PATH = Path("files")
+FILES_PATH.mkdir(exist_ok=True)
 
 app = FastAPI()
 # UI static files and routes
@@ -363,7 +367,7 @@ def get_status():
     )
 
 
-@app.get("/api/experiments/{experiment_id}", response_model=ExperimentLogSchema)
+@app.get("/api/experimentlog/{experiment_id}", response_model=ExperimentLogSchema)
 def get_experiment(experiment_id: int, db: Session = Depends(get_db)):
     experiment = db.query(ExperimentLog).filter(ExperimentLog.id == experiment_id).first()
     if not experiment:
@@ -371,12 +375,10 @@ def get_experiment(experiment_id: int, db: Session = Depends(get_db)):
     return experiment
 
 
-@app.post("/api/experiments/", response_model=int)
-def create_experiment(experiment: ExperimentLogSchema, db: Session = Depends(get_db)):
+@app.post("/api/experimentlog/", response_model=int)
+def create_experiment(experiment: CreateExperimentLogSchema, db: Session = Depends(get_db)):
     new_experiment = ExperimentLog(
         author_id=experiment.author_id,
-        preliminary_evaluation_id=experiment.preliminary_evaluation_id,
-        final_evaluation_id=experiment.final_evaluation_id
     )
     db.add(new_experiment)
     db.commit()
@@ -384,7 +386,7 @@ def create_experiment(experiment: ExperimentLogSchema, db: Session = Depends(get
     return new_experiment.id
 
 
-@app.get("/api/experiment_turns/{turn_id}", response_model=ExperimentTurnSchema)
+@app.get("/api/experiment_turn/{turn_id}", response_model=ExperimentTurnSchema)
 def get_experiment_turn(turn_id: int, db: Session = Depends(get_db)):
     turn = db.query(ExperimentTurn).filter(ExperimentTurn.id == turn_id).first()
     if not turn:
@@ -392,19 +394,26 @@ def get_experiment_turn(turn_id: int, db: Session = Depends(get_db)):
     return turn
 
 
-@app.post("/api/experiment_turns/", response_model=int)
-def create_experiment_turn(turn: ExperimentTurnSchema, db: Session = Depends(get_db)):
+@app.post("/api/experiment_turn/", response_model=int)
+def create_experiment_turn(turn: CreateExperimentTurnSchema, db: Session = Depends(get_db)):
     new_turn = ExperimentTurn(
         experiment_id=turn.experiment_id,
-        previous_turn=turn.previous_turn,
-        turn=turn.turn,
+        previous_turn_id=turn.previous_turn,
         goal=turn.goal,
         prompt=turn.prompt,
-        discussion=turn.discussion
+        output=turn.output,
     )
     db.add(new_turn)
     db.commit()
     db.refresh(new_turn)
+
+    create_justified_skill(db, new_turn.id, turn.hypothesis)
+    create_justified_skill(db, new_turn.id, turn.analysis)
+    create_justified_skill(db, new_turn.id, turn.review)
+    create_justified_skill(db, new_turn.id, turn.conclusions)
+    create_justified_skill(db, new_turn.id, turn.planning)
+
+
     return new_turn.id
 
 
@@ -430,60 +439,83 @@ def create_skill(skill: AiSkillSchema, db: Session = Depends(get_db)):
     return new_skill.id
 
 
-@app.get("/api/preliminary_evaluations/{evaluation_id}", response_model=PreliminaryEvaluationSchema)
+@app.post("/api/preliminary_evaluation/", response_model=int)
+def create_preliminary_evaluation(preliminary: CreatePreliminaryEvaluationSchema, db: Session = Depends(get_db)):
+    
+
+    new_preliminary_evaluation = PreliminaryEvaluation(
+        title = preliminary.title,
+        description = preliminary.description,
+        model = preliminary.model,
+        experience_id = create_or_select_skill(db, preliminary.experience).id,
+        difficulty_id = create_or_select_skill(db, preliminary.difficulty).id
+    )
+    db.add(new_preliminary_evaluation)
+    db.commit()
+    db.refresh(new_preliminary_evaluation)
+    db.query(ExperimentLog).filter(ExperimentLog.id == preliminary.experiment_id).update({"preliminary_evaluation_id": new_preliminary_evaluation.id})
+    db.commit()
+    
+    return new_preliminary_evaluation.id
+
+@app.get("/api/preliminary_evaluation/{evaluation_id}", response_model=PreliminaryEvaluationSchema)
 def get_preliminary_evaluation(evaluation_id: int, db: Session = Depends(get_db)):
-    evaluation = db.query(PreliminaryEvaluation).filter(PreliminaryEvaluation.id == evaluation_id).first()
+    evaluation = db.query(PreliminaryEvaluation).get(evaluation_id)
     if not evaluation:
         raise HTTPException(status_code=404, detail="Evaluation not found")
     return evaluation
 
 
-@app.post("/api/final_evaluations/", response_model=int)
-def create_final_evaluation(evaluation: FinalEvaluationSchema, db: Session = Depends(get_db)):
+@app.post("/api/final_evaluation/", response_model=int)
+def create_final_evaluation(evaluation: CreateFinalEvaluationSchema, db: Session = Depends(get_db)):
     new_evaluation = FinalEvaluation(
-        overall_id=evaluation.overall,
-        novelty_id=evaluation.novelty,
-        productivity_id=evaluation.productivity,
-        teamwork_id=evaluation.teamwork,
-        completeness_id=evaluation.completeness,
-        overall_justification=evaluation.overall_justification,
-        novelty_justification=evaluation.novelty_justification,
-        productivity_justification=evaluation.productivity_justification,
-        teamwork_justification=evaluation.teamwork_justification,
-        completeness_justification=evaluation.completeness_justification,
+        overall_id=create_or_select_skill(db, evaluation.overall.score).id,
+        novelty_id=create_or_select_skill(db, evaluation.novelty.score).id,
+        productivity_id=create_or_select_skill(db, evaluation.productivity.score).id,
+        teamwork_id=create_or_select_skill(db, evaluation.teamwork.score).id,
+        completeness_id=create_or_select_skill(db, evaluation.completeness.score).id,
+
+        overall_justification=evaluation.overall.justification,
+        novelty_justification=evaluation.novelty.justification,
+        productivity_justification=evaluation.productivity.justification,
+        teamwork_justification=evaluation.teamwork.justification,
+        completeness_justification=evaluation.completeness.justification,
+
         productivity_improvement=evaluation.productivity_improvement,
         event_improvement=evaluation.event_improvement
     )
     db.add(new_evaluation)
     db.commit()
     db.refresh(new_evaluation)
+    db.query(ExperimentLog).filter(ExperimentLog.id == evaluation.experiment_id).update({"final_evaluation_id": new_evaluation.id})
     return new_evaluation.id
 
 
-@app.get("/api/experiment_turn_evaluations/{turn_evaluation_id}", response_model=ExperimentTurnEvaluationSchema)
-def get_experiment_turn_evaluation(turn_evaluation_id: int, db: Session = Depends(get_db)):
-    evaluation = db.query(ExperimentTurnEvaluation).filter(ExperimentTurnEvaluation.id == turn_evaluation_id).first()
-    if not evaluation:
-        raise HTTPException(status_code=404, detail="Turn evaluation not found")
-    return evaluation
 
 
-@app.get("/api/experiment_turn_files/{turn_id}", response_model=list[ExperimentTurnFilesSchema])
-def get_experiment_turn_files(turn_id: int, db: Session = Depends(get_db)):
-    files = db.query(ExperimentTurnFiles).filter(ExperimentTurnFiles.turn_id == turn_id).all()
-    return files
+@app.get("/api/experiment_file", response_model=list[int])
+def get_experiment_turn_files(turn_id: Optional[int], db: Session = Depends(get_db)):
+    if turn_id:
+        return db.query(ExperimentTurnFiles.id).filter(ExperimentTurnFiles.turn_id == turn_id).all()
+    else:
+        return db.query(ExperimentTurnFiles.id).all()
 
 
-@app.post("/api/experiment_turn_files/", response_model=int)
-def create_experiment_turn_file(file_data: ExperimentTurnFilesSchema, db: Session = Depends(get_db)):
-    new_file = ExperimentTurnFiles(
-        turn_id=file_data.turn_id,
-        file_path=file_data.file_path
+
+@app.post("/api/experiment_file", response_model=int)
+async def create_experiment_turn_file(
+        file: Annotated[UploadFile, File()],
+        turnid: Annotated[str, Form()],
+        db: Session = Depends(get_db)):
+    upload_path = FILES_PATH/str(uuid.uuid4())
+    file_metadata = ExperimentTurnFiles(
+        turn_id=int(turnid),
+        file_path=str(upload_path)
     )
-    db.add(new_file)
+    with open(upload_path, 'wb') as f:
+        f.write(await file.read())
+    db.add(file_metadata)
     db.commit()
-    db.refresh(new_file)
-    return new_file.id
-
-
-# @app.post("/api/")
+    db.refresh(file_metadata)
+    return file_metadata.id
+    

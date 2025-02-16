@@ -136,6 +136,19 @@ class AuthorExperienceSchema(BaseModel):
     class Config:
         from_attributes = True
 
+class CreateAiSkillSchema(BaseModel):
+    name: str
+    description: str
+    level: int|str
+    class Config:
+        from_attributes = True
+
+class CreateJustifiedAiSkill(BaseModel):
+    score: CreateAiSkillSchema
+    justification: str
+    class Config:
+        from_attributes = True
+
 class AiSkillSchema(BaseModel):
     id: int
     name: str
@@ -149,6 +162,18 @@ class AiSkillCategorySchema(BaseModel):
     id: int
     name: str
     description: str
+    class Config:
+        from_attributes = True
+
+class CreateFinalEvaluationSchema(BaseModel):
+    experiment_id: int
+    overall: CreateJustifiedAiSkill
+    novelty: CreateJustifiedAiSkill
+    productivity: CreateJustifiedAiSkill
+    teamwork: CreateJustifiedAiSkill
+    completeness: CreateJustifiedAiSkill
+    productivity_improvement: str
+    event_improvement: str
     class Config:
         from_attributes = True
 
@@ -169,11 +194,33 @@ class FinalEvaluationSchema(BaseModel):
     class Config:
         from_attributes = True
 
+class CreateExperimentLogSchema(BaseModel):
+    author_id: AuthorSchema|int
+    class Config:
+        from_attributes = True
+
 class ExperimentLogSchema(BaseModel):
     id: int
     author_id: AuthorSchema|int
     preliminary_evaluation_id: int
     final_evaluation_id: FinalEvaluationSchema|int
+    class Config:
+        from_attributes = True
+
+class CreateExperimentTurnSchema(BaseModel):
+    experiment_id: int
+    previous_turn: Optional[int]
+    goal: str
+    prompt: str
+    output: str
+
+    analysis: CreateJustifiedAiSkill
+    conclusions: CreateJustifiedAiSkill
+    hypothesis: CreateJustifiedAiSkill
+    planning: CreateJustifiedAiSkill
+    review: CreateJustifiedAiSkill
+    understanding: CreateJustifiedAiSkill
+
     class Config:
         from_attributes = True
 
@@ -188,11 +235,21 @@ class ExperimentTurnSchema(BaseModel):
     class Config:
         from_attributes = True
 
+class CreatePreliminaryEvaluationSchema(BaseModel):
+    experiment_id: int
+    title: str
+    description: str
+    model: str
+    experience: CreateAiSkillSchema
+    difficulty: CreateAiSkillSchema
+    class Config:
+        from_attributes = True
+
 class PreliminaryEvaluationSchema(BaseModel):
     id: int
     title: str
     description: str
-    complexity_id: AiSkillSchema|int
+    difficulty: AiSkillSchema|int
     class Config:
         from_attributes = True
 
@@ -202,7 +259,3 @@ class ExperimentTurnEvaluationSchema(BaseModel):
     skill_level: str 
     class Config:
         from_attributes = True
-
-class ExperimentTurnFilesSchema(BaseModel):
-    turn_id: ExperimentTurnSchema|int
-    file_path: str

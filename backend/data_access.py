@@ -1,8 +1,44 @@
 from typing import Optional
-from schemas import CreateAuthorSchema, CreateReviewSchema, CreateQuestionSchema, ReviewerSchema, ContributionsSchema
-from models import Author, Affiliation, Review, Question, Skill, Domain, Difficulty, Position, Distractor, Review, domains_to_questions, Skips
+from schemas import CreateAuthorSchema, CreateReviewSchema, CreateQuestionSchema, ReviewerSchema, ContributionsSchema, CreateAiSkillSchema, CreateJustifiedAiSkill
+from models import Author, Affiliation, Review, Question, Skill, Domain, Difficulty, Position, Distractor, Review, domains_to_questions, Skips, AiSkill, AiSkillCategory, ExperimentTurnEvaluation
 from sqlalchemy import or_, and_, text, bindparam, func
 from sqlalchemy.orm import Session, joinedload
+
+def create_or_select_skill_category(db: Session, skill_name: str) -> AiSkillCategory:
+    item = db.query(AiSkillCategory).filter(AiSkillCategory.name == skill_name).first()
+    if item is None:
+        item = AiSkillCategory(name=skill_name)
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+    return item
+
+def create_or_select_skill(db: Session, skill: CreateAiSkillSchema) -> AiSkill:
+    skill_category = create_or_select_skill_category(db, skill.name).id
+    item = db.query(AiSkill).filter(AiSkill.description == skill.description, AiSkill.level == skill.level, AiSkill.skill_category_id == skill_category).first()
+    if item is None:
+        item = AiSkill(
+            description=skill.name,
+            level=skill.level,
+            skill_category_id = skill_category
+        )
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+    return item
+
+def create_justified_skill(db: Session, experiment_turn_id: int, just_skill: CreateJustifiedAiSkill) -> int:
+    skill = create_or_select_skill(db, just_skill.score)
+    turn_eval = ExperimentTurnEvaluation(
+        turn_id = experiment_turn_id,
+        skill_id = skill.id,
+        skill_comments = just_skill.justification
+    )
+    db.add(turn_eval)
+    db.commit()
+    db.refresh(turn_eval)
+    return turn_eval.id
+
 
 def insert_or_select(db: Session, EntityType, text: str):
     item = db.query(EntityType).filter(EntityType.name == text).first()
