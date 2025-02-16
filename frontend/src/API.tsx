@@ -23,6 +23,17 @@ export interface ContributionsSchema {
     num_reviews: number
 };
 
+export interface CreateExperimentLogSchema {
+    author_id: number
+}
+export interface ExperimentLogSchema {
+    author_id: number
+    experiment_id: number
+    preliminary_evaluation_id: number | null
+    final_evaluation_id: number | null
+    last_turn_id: number | null
+}
+
 export interface AuthorSchema {
     author: string
     affiliation: string
@@ -31,8 +42,8 @@ export interface AuthorSchema {
 }
 export interface AuthorResponseSchema {
     id: number
-    author: string
-    affiliation: string
+    name: string
+    affilliation: string
     position: string
     orcid?: string
 }

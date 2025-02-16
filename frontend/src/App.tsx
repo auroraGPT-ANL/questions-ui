@@ -7,6 +7,7 @@ import { Routes, Route, BrowserRouter, useLocation } from "react-router-dom";
 import {QuestionAuthoring} from "./Authoring";
 import {QuestionReviewing} from "./Reviewing";
 import {Contributions} from "./Contributions";
+import {LabStyle} from "./LabStyle";
 import {Login} from "./Login";
 import { Provider as GlobusAuthProvider, useGlobusAuth } from '@globus/react-auth-context';
 
@@ -51,6 +52,7 @@ function Router() {
         <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
             <Route index element={<QuestionAuthoring />} />
+            <Route path="/labstyle" element={<LabStyle />} />
             <Route path="/contributions" element={<Contributions />} />
             <Route path="/reviewing" element={<QuestionReviewing />} />
             <Route path="/login" element={<Login />} />
