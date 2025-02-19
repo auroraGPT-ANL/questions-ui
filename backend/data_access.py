@@ -27,7 +27,9 @@ def create_or_select_skill(db: Session, skill: CreateAiSkillSchema) -> AiSkill:
         db.refresh(item)
     return item
 
-def create_justified_skill(db: Session, experiment_turn_id: int, just_skill: CreateJustifiedAiSkill) -> int:
+def create_justified_skill(db: Session, experiment_turn_id: int, just_skill: Optional[CreateJustifiedAiSkill]) -> Optional[int]:
+    if just_skill is None:
+        return None
     skill = create_or_select_skill(db, just_skill.score)
     turn_eval = ExperimentTurnEvaluation(
         turn_id = experiment_turn_id,

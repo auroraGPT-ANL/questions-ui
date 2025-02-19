@@ -167,13 +167,16 @@ class AiSkillCategorySchema(BaseModel):
 
 class CreateFinalEvaluationSchema(BaseModel):
     experiment_id: int
-    overall: CreateJustifiedAiSkill
-    novelty: CreateJustifiedAiSkill
-    productivity: CreateJustifiedAiSkill
-    teamwork: CreateJustifiedAiSkill
-    completeness: CreateJustifiedAiSkill
-    productivity_improvement: str
+    overall: Optional[CreateJustifiedAiSkill]
+    novelty: Optional[CreateJustifiedAiSkill]
+    productivity: Optional[CreateJustifiedAiSkill]
+    teamwork: Optional[CreateJustifiedAiSkill]
+    completeness: Optional[CreateJustifiedAiSkill]
+    productivity_improvement: Optional[str]
     event_improvement: str
+    daily_use: str
+    main_strength: str
+    main_weakness: str
     class Config:
         from_attributes = True
 
@@ -213,6 +216,8 @@ class CreateExperimentTurnSchema(BaseModel):
     goal: str
     prompt: str
     output: str
+    other_task: str
+    other_task_assessment: str
 
     analysis: CreateJustifiedAiSkill
     conclusions: CreateJustifiedAiSkill
@@ -240,7 +245,12 @@ class CreatePreliminaryEvaluationSchema(BaseModel):
     title: str
     description: str
     model: str
+    goal: str
+    difficulty_explaination: str
+    realism: str
+    comments: str
     experience: CreateAiSkillSchema
+    reasoning_experience: CreateAiSkillSchema
     difficulty: CreateAiSkillSchema
     class Config:
         from_attributes = True
