@@ -481,6 +481,7 @@ interface ProblemSetupProps {
 
 
                 //TODO handle file uploads
+/*
                 for (const file of files) {
 
                     const formData = new FormData();
@@ -496,6 +497,7 @@ interface ProblemSetupProps {
 
                     console.log(file);
                 }
+*/
 
 
                 setPreviousTurn(server_prompt_response_id);

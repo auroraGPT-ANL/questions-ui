@@ -30,6 +30,8 @@ app.mount("/ui/assets/", StaticFiles(directory="ui/assets"), name="ui")
 @app.get("/ui/reviewing", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/reviewing/index.html", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/contributions", response_class=FileResponse, include_in_schema=False)
+@app.get("/ui/labstyle.html", response_class=FileResponse, include_in_schema=False)
+@app.get("/ui/labstyle", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/contributions/index.html", response_class=FileResponse, include_in_schema=False)
 def authoring(_: Request):
     return FileResponse("ui/index.html")
@@ -375,7 +377,7 @@ def get_experiment(experiment_id: int, db: Session = Depends(get_db)):
     return experiment
 
 
-@app.post("/api/experimentlog/", response_model=int)
+@app.post("/api/experimentlog", response_model=int)
 def create_experiment(experiment: CreateExperimentLogSchema, db: Session = Depends(get_db)):
     new_experiment = ExperimentLog(
         author_id=experiment.author_id,
@@ -394,7 +396,7 @@ def get_experiment_turn(turn_id: int, db: Session = Depends(get_db)):
     return turn
 
 
-@app.post("/api/experiment_turn/", response_model=int)
+@app.post("/api/experiment_turn", response_model=int)
 def create_experiment_turn(turn: CreateExperimentTurnSchema, db: Session = Depends(get_db)):
     new_turn = ExperimentTurn(
         experiment_id=turn.experiment_id,
@@ -425,7 +427,7 @@ def get_skill(skill_id: int, db: Session = Depends(get_db)):
     return skill
 
 
-@app.post("/api/skills/", response_model=int)
+@app.post("/api/skills", response_model=int)
 def create_skill(skill: AiSkillSchema, db: Session = Depends(get_db)):
     new_skill = AiSkill(
         name=skill.name,
@@ -439,7 +441,7 @@ def create_skill(skill: AiSkillSchema, db: Session = Depends(get_db)):
     return new_skill.id
 
 
-@app.post("/api/preliminary_evaluation/", response_model=int)
+@app.post("/api/preliminary_evaluation", response_model=int)
 def create_preliminary_evaluation(preliminary: CreatePreliminaryEvaluationSchema, db: Session = Depends(get_db)):
     
 
@@ -466,7 +468,7 @@ def get_preliminary_evaluation(evaluation_id: int, db: Session = Depends(get_db)
     return evaluation
 
 
-@app.post("/api/final_evaluation/", response_model=int)
+@app.post("/api/final_evaluation", response_model=int)
 def create_final_evaluation(evaluation: CreateFinalEvaluationSchema, db: Session = Depends(get_db)):
     new_evaluation = FinalEvaluation(
         overall_id=create_or_select_skill(db, evaluation.overall.score).id,
@@ -518,4 +520,3 @@ async def create_experiment_turn_file(
     db.commit()
     db.refresh(file_metadata)
     return file_metadata.id
-    
