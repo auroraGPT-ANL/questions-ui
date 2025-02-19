@@ -709,6 +709,7 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
   const [output, setOutput] = useState<string>("");
   const [tab, setTab] = useState<string | null>("intro");
   const [_promptHistory, setPromptHistory] = useState<string[]>([]);
+  const [nonRestrictedProblem, setNonRestrictedProblem] = useState<boolean>(false);
   const updateHistory = useCallback(
     debounce((value: string) => {
       setPromptHistory((old) => {
@@ -950,6 +951,7 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
       setConclusionsExplaination("");
       setTaskDescription("");
       setTaskAssessment("");
+      setNonRestrictedProblem(false);
       setTab("intro");
       nextPrompt();
       notifications.show({
@@ -971,7 +973,7 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
 
   const [files, setFiles] = useState<File[]>([]);
   return (
-    <>
+    <Flex direction="column" gap="1em">
       <h1>Prompting</h1>
       <h2>First, think about your prompt</h2>
       <Textarea
@@ -1102,9 +1104,14 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
           />
         </Tabs.Panel>
       </Tabs>
-      <Button onClick={submitPrompt}>keep prompting</Button>
-      <Button onClick={submitAndFinishPrompt}>finish</Button>
-    </>
+      <Checkbox
+      label="I certify that this prompt does not contain any restricted information or personally identifyiable information (PII)"
+      checked={nonRestrictedProblem}
+      onChange={(e) => setNonRestrictedProblem(e.currentTarget.checked)}
+      />
+      <Button disabled={!nonRestrictedProblem} onClick={submitPrompt}>keep prompting</Button>
+      <Button disabled={!nonRestrictedProblem} onClick={submitAndFinishPrompt}>finish</Button>
+    </Flex>
   );
 }
 
