@@ -8,6 +8,7 @@
     "build": "tsc && vite build --base=/projects/auroragptquestions/ui/",
     "builddev": "tsc && vite build --mode=development",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "format": "prettier --write 'src/**/*.{ts,tsx}'",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "postcss": "^8.4.35",
     "postcss-preset-mantine": "1.14.4",
     "postcss-simple-vars": "^7.0.1",
+    "prettier": "^3.5.1",
     "typescript": "^5.4.5",
     "vite": "^5.2.10"
   },

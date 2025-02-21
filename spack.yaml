@@ -10,8 +10,11 @@ spack:
   - py-mysql-connector-python
   - mysql+client_only
   - py-pip
+  - python@3.11
   - neovim
   - postgresql
+  - py-fastapi
+  - py-sqlalchemy
   view: true
   concretizer:
     unify: true

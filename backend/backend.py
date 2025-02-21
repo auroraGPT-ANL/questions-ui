@@ -23,22 +23,14 @@ app = FastAPI()
 app.mount("/ui/assets/", StaticFiles(directory="ui/assets"), name="ui")
 
 
-@app.get("/ui", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/", response_class=FileResponse, include_in_schema=False)
-@app.get("/ui/login", response_class=FileResponse, include_in_schema=False)
-@app.get("/ui/index.html", response_class=FileResponse, include_in_schema=False)
-@app.get("/ui/reviewing", response_class=FileResponse, include_in_schema=False)
-@app.get("/ui/reviewing/index.html", response_class=FileResponse, include_in_schema=False)
-@app.get("/ui/contributions", response_class=FileResponse, include_in_schema=False)
-@app.get("/ui/labstyle.html", response_class=FileResponse, include_in_schema=False)
-@app.get("/ui/labstyle", response_class=FileResponse, include_in_schema=False)
-@app.get("/ui/contributions/index.html", response_class=FileResponse, include_in_schema=False)
-def authoring(_: Request):
-    return FileResponse("ui/index.html")
-
-@app.get("/ui/favicon.svg", response_class=FileResponse, include_in_schema=False)
-def favicon(_: Request):
-    return FileResponse("ui/favicon.svg")
+@app.get("/ui/{path:path}", response_class=FileResponse, include_in_schema=False)
+def authoring(_: Request, path: Optional[Path] = None):
+    print(path)
+    if path == Path("favicon.svg"):
+        return FileResponse("ui/favicon.svg")
+    else:
+        return FileResponse("ui/index.html")
 
 @app.get("/", response_class=RedirectResponse, include_in_schema=False)
 def root(request: Request):
@@ -404,6 +396,8 @@ def create_experiment_turn(turn: CreateExperimentTurnSchema, db: Session = Depen
         goal=turn.goal,
         prompt=turn.prompt,
         output=turn.output,
+        other_task=turn.other_task,
+        other_task_assessment=turn.other_task_assessment,
     )
     db.add(new_turn)
     db.commit()
@@ -450,7 +444,12 @@ def create_preliminary_evaluation(preliminary: CreatePreliminaryEvaluationSchema
         description = preliminary.description,
         model = preliminary.model,
         experience_id = create_or_select_skill(db, preliminary.experience).id,
-        difficulty_id = create_or_select_skill(db, preliminary.difficulty).id
+        reasoning_experience_id = create_or_select_skill(db, preliminary.reasoning_experience).id,
+        difficulty_id = create_or_select_skill(db, preliminary.difficulty).id,
+        difficulty_explaination = preliminary.difficulty_explaination,
+        comments = preliminary.comments,
+        realism = preliminary.realism,
+        goal = preliminary.goal
     )
     db.add(new_preliminary_evaluation)
     db.commit()
@@ -467,24 +466,38 @@ def get_preliminary_evaluation(evaluation_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Evaluation not found")
     return evaluation
 
+def justification_or(x, default = ""):
+    if x is None:
+        return default
+    else:
+        return x.justification
+def score_or(db, x, default = None) -> Optional[int]:
+    if x is None:
+        return default
+    else:
+        return create_or_select_skill(db, x.score).id
+
 
 @app.post("/api/final_evaluation", response_model=int)
 def create_final_evaluation(evaluation: CreateFinalEvaluationSchema, db: Session = Depends(get_db)):
     new_evaluation = FinalEvaluation(
-        overall_id=create_or_select_skill(db, evaluation.overall.score).id,
-        novelty_id=create_or_select_skill(db, evaluation.novelty.score).id,
-        productivity_id=create_or_select_skill(db, evaluation.productivity.score).id,
-        teamwork_id=create_or_select_skill(db, evaluation.teamwork.score).id,
-        completeness_id=create_or_select_skill(db, evaluation.completeness.score).id,
+        overall_id=score_or(db, evaluation.overall),
+        novelty_id=score_or(db, evaluation.novelty),
+        productivity_id=score_or(db, evaluation.productivity),
+        teamwork_id=score_or(db, evaluation.teamwork),
+        completeness_id=score_or(db, evaluation.completeness),
 
-        overall_justification=evaluation.overall.justification,
-        novelty_justification=evaluation.novelty.justification,
-        productivity_justification=evaluation.productivity.justification,
-        teamwork_justification=evaluation.teamwork.justification,
-        completeness_justification=evaluation.completeness.justification,
+        overall_justification=justification_or(evaluation.overall),
+        novelty_justification=justification_or(evaluation.novelty),
+        productivity_justification=justification_or(evaluation.productivity),
+        teamwork_justification=justification_or(evaluation.teamwork),
+        completeness_justification=justification_or(evaluation.completeness),
 
-        productivity_improvement=evaluation.productivity_improvement,
-        event_improvement=evaluation.event_improvement
+        productivity_improvement=evaluation.productivity_improvement or "",
+        event_improvement=evaluation.event_improvement,
+        main_strength = evaluation.main_strength,
+        main_weakness = evaluation.main_weakness,
+        daily_use = evaluation.daily_use,
     )
     db.add(new_evaluation)
     db.commit()
@@ -520,3 +533,8 @@ async def create_experiment_turn_file(
     db.commit()
     db.refresh(file_metadata)
     return file_metadata.id
+
+@app.middleware("http")
+async def debug_headers(request: Request, call_next):
+    print(dict(request.headers))
+    return await call_next(request)
