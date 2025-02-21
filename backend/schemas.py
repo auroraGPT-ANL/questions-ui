@@ -269,3 +269,8 @@ class ExperimentTurnEvaluationSchema(BaseModel):
     skill_level: str 
     class Config:
         from_attributes = True
+
+class ExperimentFile(BaseModel):
+    turn_id: int
+    contents: list[int]
+    filename: str

@@ -533,8 +533,3 @@ async def create_experiment_turn_file(
     db.commit()
     db.refresh(file_metadata)
     return file_metadata.id
-
-@app.middleware("http")
-async def debug_headers(request: Request, call_next):
-    print(dict(request.headers))
-    return await call_next(request)
