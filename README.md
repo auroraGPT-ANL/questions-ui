@@ -10,12 +10,12 @@ docker build -t questionsui .
 
 #run the container
 docker run \
-    -d \                        #run in daemonized mode
-    --rm \                      #run in an ephemerial container
-    -p 8000:8000 \              #expose the port
-    -v ./data:/app/files        #mount the directory for file uploads
-    -v ./db:/app/db             #mount the directory for the database
-    -E WEB_CONCURRENCY=$(nproc) #set the uvicorn processes
+    -d \                          #run in daemonized mode
+    --rm \                        #run in an ephemerial container; this does not make the volumes e.g data ephemerial
+    -p 8000:8000 \                #expose the port
+    -v ./data:/app/files \        #mount the directory for file uploads
+    -v ./db:/app/db      \        #mount the directory for the database
+    -e WEB_CONCURRENCY=$(nproc) \ #set the uvicorn processes
     questionsui
 ```
 

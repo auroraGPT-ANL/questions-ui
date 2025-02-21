@@ -2,8 +2,8 @@ from datetime import datetime
 from sqlalchemy import create_engine, Table, ForeignKey, Column, func, DateTime, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, sessionmaker, relationship, mapped_column
 from typing import List,Optional
+from config import SQLALCHEMY_DATABASE_URL
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///questions.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
