@@ -168,7 +168,7 @@ function ProblemSetup({ finishSetup, state }: ProblemSetupProps) {
         value={experience}
         onChange={(e) => setExperience(e as keyof typeof experience_levels)}
         name="levelOfExperience"
-        label="On average, what is your level of experience with knowledge AI systems such as ChatGPT 4o, Claude, LLama3, etc? If answering for a team, provide the level of experience of the most experienced team member."
+        label="On average, what is your level of experience with advanced AI systems such as ChatGPT 4o, Claude, LLama3, etc? If answering for a team, provide the level of experience of the most experienced team member."
       >
         {Object.entries(experience_levels).map(([k, v]) => (
           <Radio key={k} value={k} label={v} />
@@ -180,7 +180,7 @@ function ProblemSetup({ finishSetup, state }: ProblemSetupProps) {
           setReasoningExperience(e as keyof typeof experience_levels)
         }
         name="levelOfExperienceReasoning"
-        label="On average, what is your level of experience with reasoning AI systems such as O1, O3, Gemini 2.0, Perplexity-Pro-Reasoning? If answering for a team, provide the level of experience of the most experienced team member."
+        label="On average, what is your level of experience with advanced reasoning AI systems such as O1, O3, Gemini 2.0, Perplexity-Pro-Reasoning? If answering for a team, provide the level of experience of the most experienced team member."
       >
         {Object.entries(experience_levels).map(([k, v]) => (
           <Radio key={k} value={k} label={v} />
@@ -208,7 +208,7 @@ function ProblemSetup({ finishSetup, state }: ProblemSetupProps) {
         value={goal}
       />
       <Textarea
-        label="Describe the probem in a paragraph or more"
+        label="Describe the problem in a paragraph or more"
         minRows={4}
         autosize
         onChange={(e) => setDescription(e.currentTarget.value)}
@@ -251,7 +251,7 @@ function ProblemSetup({ finishSetup, state }: ProblemSetupProps) {
         value={comments}
       />
       <Checkbox
-      label="I certify that this problem does not contain any restricted information or personally identifyiable information (PII)"
+      label="I certify that this problem does not contain any restricted information or personally identifiable information (PII)"
       checked={nonRestrictedProblem}
       onChange={(e) => setNonRestrictedProblem(e.currentTarget.checked)}
       />
@@ -669,7 +669,7 @@ function SkillTab({
           ))}
         </Radio.Group>
         <Textarea
-          label="Please assses the skill in a paragraph or more. Be specific about what the model did or didn't do"
+          label="Please assess the skill in a paragraph or more. Be specific about what the model did or didn't do"
           autosize
           minRows={4}
           value={skillComment}
@@ -687,7 +687,7 @@ function SkillTab({
           ))}
         </List>
         <Textarea
-          label="Please assses the skill in a paragraph or more. Be specific about what the model did or didn't do"
+          label="Please assess the skill in a paragraph or more. Be specific about what the model did or didn't do"
           autosize
           minRows={4}
           value={skillComment}
@@ -1048,7 +1048,7 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
         />
         <SkillTab
           tabName="review"
-          skillLabel="Now consider how well the model can conduct a litrature search. "
+          skillLabel="Now consider how well the model can conduct a literature search. "
           skillValue={review}
           setSkillValue={setReview}
           skillComment={reviewExplaination}
