@@ -533,4 +533,27 @@ async def create_experiment_turn_file(
     db.commit()
     db.refresh(file_metadata)
     return file_metadata.id
-    
+
+#@import array
+#@import time
+#@@app.post("/api/experiment_file", response_model=int)
+#@async def create_experiment_turn_file(
+#@        create_file: ExperimentFile,
+#@        db: Session = Depends(get_db)):
+#@    turnid = create_file.turn_id
+#@    upload_path = FILES_PATH/str(uuid.uuid4())
+#@    file_metadata = ExperimentTurnFiles(
+#@        turn_id=turnid,
+#@        file_path=str(upload_path)
+#@    )
+#@    print("tobytesarr", time.perf_counter())
+#@    arr = bytearray(create_file.contents)
+#@    print("tofile", time.perf_counter())
+#@    with open(upload_path, 'wb') as f:
+#@        f.write(arr)
+#@    print("done", time.perf_counter())
+#@    db.add(file_metadata)
+#@    db.commit()
+#@    db.refresh(file_metadata)
+#@    return file_metadata.id
+

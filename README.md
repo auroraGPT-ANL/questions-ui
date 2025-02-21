@@ -2,7 +2,24 @@
 
 A form to author questions for LLMs for evaluation
 
-# Development: 
+# Container Deployment using Docker
+
+```
+# build the container
+docker build -t questionsui .
+
+#run the container
+docker run \
+    -d \                        #run in daemonized mode
+    --rm \                      #run in an ephemerial container
+    -p 8000:8000 \              #expose the port
+    -v ./data:/app/files        #mount the directory for file uploads
+    -v ./db:/app/db             #mount the directory for the database
+    -E WEB_CONCURRENCY=$(nproc) #set the uvicorn processes
+    questionsui
+```
+
+# ANL/Manual Development: 
 
 ```
 #use spack install npm and pip, and a few other dependencies
@@ -24,14 +41,14 @@ pip install -r ./requirements.txt
 ssh -J $ANL_USER@login.cels.anl.gov -D 127.0.0.1:10106 $ANL_USER@agpt-questions-vmw-01.cels.anl.gov
 export ALL_PROXY=socks5://127.0.0.1:10106
 
-# run the backend that hosts the frontend
-unicorn --reload backend:app
+# run the backend that hosts the frontend (as a background process in bash)
+unicorn --reload backend:app &
 
 # run the frontend with hot-reloading, this will proxy requests to the backend
 npm run dev
 ```
 
-# Deployment
+# ANL/Manual Deployment
 
 To administer the site deployment, you'll need a CELS account and to be part of the group
 `AuroraGPTQuestions` contact @robertu94 to be added.
