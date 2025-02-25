@@ -95,6 +95,6 @@ To do that you'll need to set `SSLKEYLOGFILE` before starting the backend, and t
 
 # Acknowledgements
 
-We acknowledge the contributions code, methodology, and early testing/feedback of The AuroraGPT Evaluation Team including Franck Cappello, Sandeep Madireddy, Robert Underwood, Avinash Maurya, Zilinghan Li, Neil Getty, Nicholas Lee-Ping Chia, Nesar Ramachandra, Josh Nguyen, Murat Keçeli, Tanwi Mallick, Chenhui Zhang, Angel Yanguas-Gil, Brad A. Ulrick, Minyang Tian, Azton Wells, Eliu Huerta, Ian Foster, Rick Stevens.
+We acknowledge the contributions code, methodology, and early testing/feedback of The AuroraGPT Evaluation Team including Franck Cappello, Sandeep Madireddy, Robert Underwood, Avinash Maurya, Zilinghan Li, Craig Stacy, Anthony Avarca, Neil Getty, Nicholas Lee-Ping Chia, Nesar Ramachandra, Josh Nguyen, Murat Keçeli, Tanwi Mallick, Chenhui Zhang, Angel Yanguas-Gil, Brad A. Ulrick, Minyang Tian, Azton Wells, Eliu Huerta, Ian Foster, Rick Stevens.
 
 This material is based upon work supported by Laboratory Directed Research and Development (LDRD) funding from Argonne National Laboratory, provided by the Director, Office of Science, of the U.S. Department of Energy under Contract No. DE-AC02-06CH11357
