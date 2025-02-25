@@ -1,6 +1,6 @@
-# AuroraGPT Questions UI
+# AuroraGPT AI Model Evaluation Platform
 
-A form to author questions for LLMs for evaluation
+A form to author and review MCQ for LLMs for evaluation, and to perform LabStyle experiments for LLMs for scientific use cases.
 
 # Container Deployment using Docker
 
