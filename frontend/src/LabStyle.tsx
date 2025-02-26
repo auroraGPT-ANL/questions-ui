@@ -2,9 +2,9 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import { useState, useMemo, useCallback } from "react";
 import {
+  Alert,
   Autocomplete,
   Button,
-  Checkbox,
   Container,
   FileInput,
   Flex,
@@ -15,6 +15,7 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { notifications, Notifications } from "@mantine/notifications";
 import debounce from "lodash.debounce";
 
@@ -24,7 +25,12 @@ import {
   AuthorInfo,
   AuthorInfoProps,
 } from "./AuthorInfo";
+import { ComplianceCheckBox } from './Compliance';
 import { AuthorResponseSchema } from "./API";
+
+const SIZE_LIMIT_IN_MB = 50;
+const SIZE_LIMIT_IN_BYTES = SIZE_LIMIT_IN_MB * 1024 * 1024;
+
 
 enum LabStyleStage {
   ProblemSetup,
@@ -35,6 +41,7 @@ interface LabStyleState {
   mode: LabStyleStage;
   experiment_id: number | null;
   allowScore: boolean;
+  author_id: number| null
 }
 
 interface ProblemSetupProps {
@@ -44,14 +51,33 @@ interface ProblemSetupProps {
 
 function AnonAuthorInfo({ configureAuthor }: AuthorInfoProps) {
   const [password, setPassword] = useState("");
-  const checkPassword = () => {
-    configureAuthor({
-      authorName: "labstyle anon author",
-      authorAffiliation: "",
-      authorPosition: "",
-      orcid: "",
-      reviewerSkills: [],
-    });
+  const [status, setStatus] = useState("");
+  const checkPassword = async () => {
+      const login_response = await fetch(
+        import.meta.env.BASE_URL + "../api/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+              password: password,
+          })
+        }
+      );
+      if (!login_response.ok) {
+        setStatus("invalid password");
+      } else {
+        setStatus("");
+        configureAuthor({
+          authorName: "labstyle anon author",
+          authorAffiliation: "",
+          authorPosition: "",
+          orcid: "",
+          reviewerSkills: [],
+        });
+      }
+
   };
   return (
     <Flex direction="column">
@@ -62,7 +88,11 @@ function AnonAuthorInfo({ configureAuthor }: AuthorInfoProps) {
       <TextInput
         label="Event Password"
         value={password}
-        onChange={(e) => setPassword(e.currentTarget.value)}
+        onChange={(e) => {
+            setStatus("");
+            setPassword(e.currentTarget.value);
+        }}
+        error={status}
       />
       <Button onClick={checkPassword}>Start Experimenting</Button>
     </Flex>
@@ -190,7 +220,7 @@ function ProblemSetup({ finishSetup, state }: ProblemSetupProps) {
         clearable
         defaultValue="GPT o3 Mini"
         label="What model did you use?"
-        data={["ChatGPT o3 Mini", "ChatGPT 4o"]}
+        data={["ChatGPT o3 Mini", "ChatGPT 4o", "Claude 3.7 Sonnet"]}
         onChange={(e) => setModel(e)}
         value={model}
       />
@@ -250,11 +280,11 @@ function ProblemSetup({ finishSetup, state }: ProblemSetupProps) {
         onChange={(e) => setComments(e.currentTarget.value)}
         value={comments}
       />
-      <Checkbox
-      label="I certify that this problem does not contain any restricted information or personally identifiable information (PII)"
-      checked={nonRestrictedProblem}
-      onChange={(e) => setNonRestrictedProblem(e.currentTarget.checked)}
-      />
+      {(!nonRestrictedProblem)? 
+      (<Alert icon={<IconAlertTriangle/>} color="orange">please certify that the problem is not restricted</Alert>):
+      (<></>)
+      }
+      <ComplianceCheckBox nonRestrictedProblem={nonRestrictedProblem} setNonRestrictedProblem={setNonRestrictedProblem}/>
       <Button onClick={finish} disabled={validate}>
         Start Prompting
       </Button>
@@ -314,6 +344,15 @@ function FinalUnscoredEvaluation({ finishEvaluation, state }: FinalEvaluationPro
       });
     }
   };
+  const finishAndDownload = async () => {
+      await finish();
+      const a = document.createElement("a");
+      a.href = import.meta.env.BASE_URL + "../api/reports/experiment_log?log_id=" + state.experiment_id
+      a.download = `${state.experiment_id}.txt`
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+  }
 
   return (
     <>
@@ -348,6 +387,7 @@ function FinalUnscoredEvaluation({ finishEvaluation, state }: FinalEvaluationPro
         value={eventImprovement}
       />
       <Button onClick={finish}>Finish</Button>
+      <Button onClick={finishAndDownload}>Finish and Download</Button>
     </>
   );
 }
@@ -438,6 +478,7 @@ function FinalEvaluation({ finishEvaluation, state }: FinalEvaluationProps) {
   const [assistance, setAssistance] = useState("");
   const [productivity_improvement, setProductivityImprovement] = useState("");
   const [event_improvement, setEventImprovement] = useState("");
+  const [nonRestrictedProblem, setNonRestrictedProblem] = useState(false);
 
   const finish = async () => {
     try {
@@ -629,6 +670,11 @@ function FinalEvaluation({ finishEvaluation, state }: FinalEvaluationProps) {
         value={event_improvement}
         onChange={(e) => setEventImprovement(e.currentTarget.value)}
       />
+      {(!nonRestrictedProblem)? 
+      (<Alert icon={<IconAlertTriangle/>} color="orange">please certify that the problem is not restricted</Alert>):
+      (<></>)
+      }
+      <ComplianceCheckBox nonRestrictedProblem={nonRestrictedProblem} setNonRestrictedProblem={setNonRestrictedProblem}/>
       <Button onClick={finish}>finish evaluation</Button>
     </>
   );
@@ -841,6 +887,7 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
             prompt: prompt,
             output: output,
             
+            files_url: filesURL,
             other_task: taskDescription,
             other_task_assessment: taskAssessment,
 
@@ -943,6 +990,7 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
       //then reset the state for the next prompt
       setGoal("");
       setFiles([]);
+      setFilesURL("");
       setPrompt("");
       setOutput("");
       setPromptHistory([]);
@@ -981,6 +1029,37 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
   };
 
   const [files, setFiles] = useState<File[]>([]);
+  const [filesError, setFilesError] = useState<string>("");
+  const [filesURL, setFilesURL] = useState<string>("");
+  const checkFiles = (files: File[]) => {
+      const errorStr = [];
+      let anyError = false;
+      for(const f of files) {
+          if(f.size > SIZE_LIMIT_IN_BYTES) {
+              errorStr.push(f.name)
+              anyError = true;
+          }
+      }
+      if(anyError) {
+          setFilesError(`These files were too large: ${errorStr.join(",")}`);
+      } else {
+          setFilesError("");
+      }
+      setFiles(files);
+  };
+  const disableContinue = useMemo(() => {
+      return (
+          !nonRestrictedProblem ||
+          filesError != "" ||
+          (files.length > 0 && filesURL.length > 0)
+      )
+  }, [nonRestrictedProblem, filesError, files, filesURL]);
+  const disableContinueReasons = useMemo(() => {
+      if(!nonRestrictedProblem) return "please certify that the problem is not restricted"
+      if(filesError != "") return "One of the files is too large, please use FILES URL instead"
+      if(files.length > 0 && filesURL.length > 0) return "do not provide both files an files URL"
+      return ""
+  }, [nonRestrictedProblem, filesError, files, filesURL]);
   return (
     <Flex direction="column" gap="1em">
       <h1>Prompting</h1>
@@ -1000,14 +1079,26 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
         onChange={(e) => updatePrompt(e.currentTarget.value)}
       />
       <FileInput
-        label="Please upload files provided in the prompt if any"
+        label={
+            <>
+            Please upload any files files provided in the prompt if any (limit {SIZE_LIMIT_IN_MB}MB/file)
+            </>
+        }
         placeholder="Click to upload files"
         clearable
         multiple
         value={files}
-        onChange={setFiles}
+        onChange={checkFiles}
+        error={filesError}
       />
-      <h2>Run the prompt in the OpenAI Interface</h2>
+      <TextInput
+        label={
+            <>Or URL for larger datasets containing files larger than {SIZE_LIMIT_IN_MB}MB. Do not provide both FILES and FILES URL</>
+        }
+        value={filesURL}
+        onChange={(e) => setFilesURL(e.currentTarget.value)}
+      />
+      <h2>Run the prompt in AI Interface Website in another tab or window</h2>
       <Textarea
         label="Please copy and paste the output"
         autosize
@@ -1113,13 +1204,13 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
           />
         </Tabs.Panel>
       </Tabs>
-      <Checkbox
-      label="I certify that this prompt does not contain any restricted information or personally identifyiable information (PII)"
-      checked={nonRestrictedProblem}
-      onChange={(e) => setNonRestrictedProblem(e.currentTarget.checked)}
-      />
-      <Button disabled={!nonRestrictedProblem} onClick={submitPrompt}>keep prompting</Button>
-      <Button disabled={!nonRestrictedProblem} onClick={submitAndFinishPrompt}>finish</Button>
+      <ComplianceCheckBox nonRestrictedProblem={nonRestrictedProblem} setNonRestrictedProblem={setNonRestrictedProblem}/>
+      {(disableContinue)? 
+      (<Alert icon={<IconAlertTriangle/>} color="orange">{disableContinueReasons}</Alert>):
+      (<></>)
+      }
+      <Button disabled={disableContinue} onClick={submitPrompt}>keep prompting</Button>
+      <Button disabled={disableContinue} onClick={submitAndFinishPrompt}>finish</Button>
     </Flex>
   );
 }
@@ -1136,6 +1227,7 @@ export function LabStyle() {
     mode: LabStyleStage.ProblemSetup,
     experiment_id: null,
     allowScore: false,
+    author_id: null
   });
   const [configured, setConfigured] = useState<boolean>(false);
   const reconfigure = () => {
@@ -1192,6 +1284,7 @@ export function LabStyle() {
         ...experimentState,
         experiment_id: server_experiment_id,
         mode: LabStyleStage.ProblemSetup,
+        author_id: server_author_info.id
       });
       setConfigured(true);
     } catch (error) {
@@ -1214,11 +1307,36 @@ export function LabStyle() {
       mode: LabStyleStage.FinalEvaluation,
     });
   };
-  const finishEvaluation = () => {
+  const finishEvaluation = async () => {
+      try {
+      const experimentlog_response = await fetch(
+        import.meta.env.BASE_URL + "../api/experimentlog",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            author_id: experimentState.author_id,
+          }),
+        },
+      );
+      if (!experimentlog_response.ok) {
+        throw new Error(experimentlog_response.statusText);
+      }
+      const server_experiment_id: number = await experimentlog_response.json();
+
     setExperimentState({
       ...experimentState,
       mode: LabStyleStage.ProblemSetup,
+      experiment_id: server_experiment_id
     });
+    } catch(error) {
+      notifications.show({
+        title: "failed to start a new evaluation",
+        message: `${error}`,
+      });
+    }
   };
 
   let lab_form;

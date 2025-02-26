@@ -179,7 +179,7 @@ class PreliminaryEvaluation(Base):
     difficulty_id: Mapped[int] = mapped_column(ForeignKey("ai_skill.id"))
 
     experience: Mapped[AiSkill] = relationship(foreign_keys=[experience_id])
-    reasoning_experience: Mapped[AiSkill] = relationship(foreign_keys=[experience_id])
+    reasoning_experience: Mapped[AiSkill] = relationship(foreign_keys=[reasoning_experience_id])
     difficulty: Mapped[AiSkill] = relationship(foreign_keys=[difficulty_id])
     difficulty_explaination: Mapped[str] = mapped_column(server_default="")
     realism: Mapped[str] = mapped_column(server_default="")
@@ -192,6 +192,7 @@ class ExperimentLog(Base):
     author_id: Mapped[int] = mapped_column(ForeignKey("author.id"))
     preliminary_evaluation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("preliminary_evaluation.id"))
     final_evaluation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("final_evaluation.id"))
+    modified: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=True)
 
     author: Mapped[Optional[Author]] = relationship()
     final_evaluation: Mapped[Optional[FinalEvaluation]] = relationship()
@@ -206,6 +207,7 @@ class ExperimentTurn(Base):
     prompt: Mapped[str] = mapped_column()
     other_task: Mapped[str] = mapped_column(server_default="")
     other_task_assessment: Mapped[str] = mapped_column(server_default="")
+    files_url: Mapped[str] = mapped_column(server_default="")
 
     experiment: Mapped[ExperimentLog] = relationship()
     previous_turn: Mapped[Optional["ExperimentTurn"]] = relationship(remote_side=[id])

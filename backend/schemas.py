@@ -218,6 +218,7 @@ class CreateExperimentTurnSchema(BaseModel):
     output: str
     other_task: str
     other_task_assessment: str
+    files_url: str
 
     analysis: CreateJustifiedAiSkill
     conclusions: CreateJustifiedAiSkill
@@ -274,3 +275,9 @@ class ExperimentFile(BaseModel):
     turn_id: int
     contents: list[int]
     filename: str
+
+
+class LoginSchema(BaseModel):
+    password: str
+class TokenSchema(BaseModel):
+    token: str

@@ -2,7 +2,7 @@ import asyncio
 from fastapi import FastAPI, Depends, Request, Query, HTTPException, Header, UploadFile, File, Form
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.responses import RedirectResponse, FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 import sqlalchemy as sa
 from typing import Optional, Annotated
@@ -10,13 +10,17 @@ import starlette.status as status
 from models import *
 from schemas import *
 from data_access import *
+from passlib.context import CryptContext
 from ai import test_question_impl, eval_result
 from pprint import pprint
 import uuid
 import config
+import textwrap
 
 FILES_PATH = Path("files")
 FILES_PATH.mkdir(exist_ok=True)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+EVENT_PASSWORD = pwd_context.hash(config.EVENT_PASSWORD)
 
 app = FastAPI()
 # UI static files and routes
@@ -37,6 +41,18 @@ def root(request: Request):
     return RedirectResponse(url=request.scope.get("root_path", "") + "/ui", status_code=status.HTTP_302_FOUND)
 
 # API Routes
+
+@app.post("/api/login", response_model=TokenSchema)
+def login(login_req: LoginSchema):
+    if pwd_context.verify(login_req.password, EVENT_PASSWORD):
+        return TokenSchema(token=pwd_context.hash(login_req.password))
+    else:
+        raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate password",
+                headers={"WWW-Authenticate": "Bearer"},
+                )
+
 
 @app.post("/api/author", response_model=AuthorSchema)
 def store_author(author: CreateAuthorSchema, db: Session = Depends(get_db)):
@@ -325,6 +341,117 @@ def reported_validated_questions(validations:int =3, db: Session = Depends(get_d
         for i in validated_questions(db, validations)
     ]
 
+def description_or(x, default=""):
+    if x:
+        return x.description
+    else:
+        return default
+def level_or(x, default=""):
+    if x:
+        return x.level
+    else:
+        return default
+@app.get("/api/reports/experiment_log", response_class=PlainTextResponse)
+def report_validation_log(log_id:int =3, db: Session = Depends(get_db)):
+    log = db.query(ExperimentLog).get(log_id)
+    if log is not None:
+        report: list[str] = []
+        metadata = textwrap.dedent(f"""
+        # Metadata
+        author_id: {log.author.name}
+        author_affiliation: {log.author.name}
+        modified: {log.modified}""")
+        report.append(metadata)
+
+        if prelim_q := db.query(PreliminaryEvaluation).options(
+                joinedload(PreliminaryEvaluation.reasoning_experience),
+                joinedload(PreliminaryEvaluation.experience),
+                ).filter(PreliminaryEvaluation.id == log.preliminary_evaluation_id).first():
+            prelim = textwrap.dedent(f"""
+            # Preliminary Assessment
+            title: {prelim_q.title}
+            description: {prelim_q.title}
+            model: {prelim_q.model}
+            experience: {description_or(prelim_q.experience, "")}
+            reasoning_experience: {description_or(prelim_q.reasoning_experience, "")}
+            difficulty: {prelim_q.difficulty.description}
+            difficulty_explaination: {prelim_q.difficulty_explaination}
+            realism: {prelim_q.realism}
+            goal: {prelim_q.goal}
+            comments: {prelim_q.comments.strip()}""")
+            report.append(prelim)
+        for turn in db.query(ExperimentTurn).filter(ExperimentTurn.experiment_id == log.id).order_by(ExperimentTurn.id).all():
+            turn_out = textwrap.dedent(f"""
+            ## Prompt {turn.id}
+            prompt: {turn.prompt}
+            goal: {turn.goal}
+            output: {turn.output}
+
+            ### Files
+            """)
+            if turn.files_url != "":
+                turn_out += textwrap.dedent(f"""
+                files_url: {turn.files_url}""")
+            for f in db.query(ExperimentTurnFiles).filter(ExperimentTurnFiles.turn_id == turn.id).all():
+                turn_out += textwrap.dedent(f"""
+                file_name: {f.file_path}""")
+            turn_out += textwrap.dedent(f"""
+            ### Skills""")
+            for s in (db.query(ExperimentTurnEvaluation)
+                .options(joinedload(ExperimentTurnEvaluation.skill))
+                .filter(ExperimentTurnEvaluation.turn_id == turn.id)):
+                if s.skill.level != "" or len(s.skill_comments):
+                    turn_out += textwrap.dedent(f"""
+                    Skill: {s.skill.description}""")
+                if s.skill.level != "":
+                    turn_out += textwrap.dedent(f"""
+                    Skill Level: {s.skill.level}""")
+                if len(s.skill_comments):
+                    turn_out += textwrap.dedent(f"""
+                    Skill Level: {s.skill_comments}""")
+            if turn.other_task != "" or turn.other_task_assessment != "":
+                turn_out += textwrap.dedent(f"""
+                other tasks: {turn.other_task}
+                other task assessment: {turn.other_task_assessment}""")
+
+            report.append(turn_out)
+        if final_q := (db.query(FinalEvaluation).options(
+                    joinedload(FinalEvaluation.overall),
+                    joinedload(FinalEvaluation.novelty),
+                    joinedload(FinalEvaluation.productivity),
+                    joinedload(FinalEvaluation.teamwork),
+                    joinedload(FinalEvaluation.completeness),
+                ).filter(FinalEvaluation.id == log.final_evaluation_id).first()):
+            final = textwrap.dedent(f"""
+            # Final Assessment
+
+            overall_level: {level_or(final_q.overall)}
+            overall_desc: {description_or(final_q.overall)}
+            overall_justification: {final_q.overall_justification}
+            novelty_level: {level_or(final_q.novelty)}
+            novelty_desc: {description_or(final_q.novelty)}
+            novelty_justification: {final_q.novelty_justification}
+            productivity_level: {level_or(final_q.productivity)}
+            productivity_desc: {description_or(final_q.productivity)}
+            productivity_justification: {final_q.productivity_justification}
+            teamwork_justification: {final_q.teamwork_justification}
+            teamwork_level: {level_or(final_q.teamwork)}
+            teamwork_desc: {description_or(final_q.teamwork)}
+            completeness_justification: {final_q.completeness_justification}
+            completeness_level: {level_or(final_q.completeness)}
+            completeness_desc: {description_or(final_q.completeness)}
+            productivity_improvement: {final_q.productivity_justification}
+            event_improvement: {final_q.event_improvement}
+            daily_use: {final_q.daily_use}
+            main_strength: {final_q.main_strength}
+            main_weakness: {final_q.main_weakness}""")
+            report.append(final)
+
+        return "\n------------------------\n".join(report)
+    else:
+        raise HTTPException(status_code=404, detail="not found")
+
+
 
 @app.get("/api/contributions/{author_id}", response_model=ContributionsSchema)
 def get_contributions(author_id : int, validations: int = 3, db: Session = Depends(get_db)):
@@ -344,7 +471,7 @@ async def test_question(question: CreateQuestionSchema, authorization: Annotated
                 results.append(tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors, api_key)))
         task_results: list[eval_result] = [t.result() for t in results]
         return [QuestionEvalSchema(model=t.model, score=t.score, correct=t.is_correct, corectlogprobs=t.correct_log_str, incorrectlogprobs=t.incorrect_log_str) for t in task_results]
-    except TimeoutError as e:
+    except* TimeoutError as e:
         err_msgs = []
         for i in e.exceptions:
             err_msgs.append(repr(i))
@@ -396,6 +523,7 @@ def create_experiment_turn(turn: CreateExperimentTurnSchema, db: Session = Depen
         goal=turn.goal,
         prompt=turn.prompt,
         output=turn.output,
+        files_url=turn.files_url,
         other_task=turn.other_task,
         other_task_assessment=turn.other_task_assessment,
     )
@@ -503,6 +631,7 @@ def create_final_evaluation(evaluation: CreateFinalEvaluationSchema, db: Session
     db.commit()
     db.refresh(new_evaluation)
     db.query(ExperimentLog).filter(ExperimentLog.id == evaluation.experiment_id).update({"final_evaluation_id": new_evaluation.id})
+    db.commit()
     return new_evaluation.id
 
 

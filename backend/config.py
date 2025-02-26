@@ -10,3 +10,4 @@ MODEL_NAME_MAP = {
     "Llama3-8B": "meta-llama/Meta-Llama-3-8B-Instruct",
     "Llama3-70B": "meta-llama/Meta-Llama-3-70B-Instruct",
 }
+EVENT_PASSWORD = os.environ.get("QUESTIONSUI_EVENT_PASSWORD", "anllabstyle")

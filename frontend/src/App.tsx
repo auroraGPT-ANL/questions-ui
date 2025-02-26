@@ -9,6 +9,7 @@ import { QuestionReviewing } from "./Reviewing";
 import { Contributions } from "./Contributions";
 import { LabStyle } from "./LabStyle";
 import { Login } from "./Login";
+import { Main } from "./MainPage";
 import {
   Provider as GlobusAuthProvider,
   useGlobusAuth,
@@ -60,7 +61,8 @@ function Router() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
-        <Route index element={<QuestionAuthoring />} />
+        <Route index element={<Main />}/>
+        <Route path="/authoring" element={<QuestionAuthoring />} />
         <Route path="/labstyle" element={<LabStyle />} />
         <Route path="/contributions" element={<Contributions />} />
         <Route path="/reviewing" element={<QuestionReviewing />} />
@@ -70,3 +72,4 @@ function Router() {
     </BrowserRouter>
   );
 }
+
