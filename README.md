@@ -1,6 +1,6 @@
-# AuroraGPT Questions UI
+# AuroraGPT AI Model Evaluation Platform
 
-A form to author questions for LLMs for evaluation
+A form to author and review MCQ for LLMs for evaluation, and to perform LabStyle experiments for LLMs for scientific use cases.
 
 # Container Deployment using Docker
 
@@ -83,7 +83,7 @@ You also have privileges to:
 + edit the systemd service file `sudoedit /etc/systemd/system/questionsui.service` for this sevice
 + edit any files in `/app`
 
-If you need more permissions than this, Robert Underwood, Franck Cappello, and CELS support have administrative priviledges.
+If you need more permissions than this, Robert Underwood, Franck Cappello, and CELS support have administrative privileges.
 
 All other requests need to go through CELS support `help@cels.anl.gov`.
 
@@ -92,3 +92,9 @@ All other requests need to go through CELS support `help@cels.anl.gov`.
 
 Requests are set over HTTPS to the globus compute backend, you can intercept these with a tool like wireshark.
 To do that you'll need to set `SSLKEYLOGFILE` before starting the backend, and then configure wireshark preferences -> protocols -> tls -> master secret log file name to point to this file.
+
+# Acknowledgements
+
+We acknowledge the contributions code, methodology, and early testing/feedback of The AuroraGPT Evaluation Team including Franck Cappello, Sandeep Madireddy, Robert Underwood, Avinash Maurya, Zilinghan Li, Craig Stacy, Anthony Avarca, Neil Getty, Nicholas Lee-Ping Chia, Nesar Ramachandra, Josh Nguyen, Murat Keçeli, Tanwi Mallick, Chenhui Zhang, Angel Yanguas-Gil, Brad A. Ulrick, Minyang Tian, Azton Wells, Eliu Huerta, Ian Foster, Rick Stevens.
+
+This material is based upon work supported by Laboratory Directed Research and Development (LDRD) funding from Argonne National Laboratory, provided by the Director, Office of Science, of the U.S. Department of Energy under Contract No. DE-AC02-06CH11357
