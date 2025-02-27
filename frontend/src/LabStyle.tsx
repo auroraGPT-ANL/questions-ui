@@ -959,6 +959,7 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
 
       //TODO handle file uploads
       let i = 0;
+      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
       const n_files = files.length;
       for (const file of files) {
         i = i + 1;
@@ -970,16 +971,35 @@ function Prompting({ nextPrompt, finishPrompting, state }: PromptingProps) {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("turnid", server_prompt_response_id.toString());
-        const file_response = await fetch(
-          import.meta.env.BASE_URL + "../api/experiment_file",
-          {
-            method: "POST",
-            body: formData,
-          },
-        );
-        notifications.hide(note);
-        if (!file_response.ok) {
-          throw new Error(`file upload failed : ${file_response.statusText}`);
+        let upload_success = false;
+        const retry_limit = 3;
+        for (let retry=0; retry<retry_limit; retry++) {
+            const file_response = await fetch(
+              import.meta.env.BASE_URL + "../api/experiment_file",
+              {
+                method: "POST",
+                body: formData,
+              },
+            );
+            notifications.hide(note);
+            if (!file_response.ok) {
+              if (file_response.status == 504 || file_response.status == 503) {
+                    notifications.show({
+                      title: "uploading files",
+                      message: `timeout retrying: ${retry+1}/${retry_limit} in ${(1+retry)*2} seconds`,
+                    });
+                  await sleep(2000*(retry+1));
+                  continue;
+              } else {
+                  throw new Error(`file upload failed : ${file_response.statusText}`);
+              }
+            } else {
+                upload_success = true;
+                break;
+            }
+        }
+        if(!upload_success) {
+          throw new Error(`file upload failed : Timeout`);
         }
 
         console.log(file);
