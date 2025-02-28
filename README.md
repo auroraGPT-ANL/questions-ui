@@ -93,6 +93,22 @@ All other requests need to go through CELS support `help@cels.anl.gov`.
 Requests are set over HTTPS to the globus compute backend, you can intercept these with a tool like wireshark.
 To do that you'll need to set `SSLKEYLOGFILE` before starting the backend, and then configure wireshark preferences -> protocols -> tls -> master secret log file name to point to this file.
 
+# Citing this tool
+
+```bibtex
+@article{Cappello_Madireddy_Underwood_Getty_Chia_Ramachandra_Nguyen_Keceli_Mallick_Li_et_al._2025,
+    title={EAIRA: Establishing a Methodology for Evaluating AI Models as Scientific Research Assistants},
+    url={http://arxiv.org/abs/2502.20309},
+    DOI={10.48550/arXiv.2502.20309},
+    note={arXiv:2502.20309 [cs]}, 
+    number={arXiv:2502.20309}, 
+    publisher={arXiv},
+    author={Cappello, Franck and Madireddy, Sandeep and Underwood, Robert and Getty, Neil and Chia, Nicholas Lee-Ping and Ramachandra, Nesar and Nguyen, Josh and Keceli, Murat and Mallick, Tanwi and Li, Zilinghan and Ngom, Marieme and Zhang, Chenhui and Yanguas-Gil, Angel and Antoniuk, Evan and Kailkhura, Bhavya and Tian, Minyang and Du, Yufeng and Ting, Yuan-Sen and Wells, Azton and Nicolae, Bogdan and Maurya, Avinash and Rafique, M. Mustafa and Huerta, Eliu and Li, Bo and Foster, Ian and Stevens, Rick},
+    year={2025},
+    month=feb 
+}
+```
+
 # Acknowledgements
 
 We acknowledge the contributions code, methodology, and early testing/feedback of The AuroraGPT Evaluation Team including Franck Cappello, Sandeep Madireddy, Robert Underwood, Avinash Maurya, Zilinghan Li, Craig Stacy, Anthony Avarca, Neil Getty, Nicholas Lee-Ping Chia, Nesar Ramachandra, Josh Nguyen, Murat Keçeli, Tanwi Mallick, Chenhui Zhang, Angel Yanguas-Gil, Brad A. Ulrick, Minyang Tian, Azton Wells, Eliu Huerta, Ian Foster, Rick Stevens.

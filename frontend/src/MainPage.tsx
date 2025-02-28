@@ -17,6 +17,6 @@ export function Main() {
             <List.Item><a href="labstyle">Perform a LabStyle Experiment</a></List.Item>
         </List>
 
-        <Text>More on this tool can be found on <Anchor target="_blank" href="https://github.com/auroraGPT-ANL/questions-ui/">GitHub</Anchor> or on the <Anchor target="_blank" href="">Paper</Anchor></Text>
+        <Text>More on this tool can be found on <Anchor target="_blank" href="https://github.com/auroraGPT-ANL/questions-ui/">GitHub</Anchor> or on the <Anchor target="_blank" href="https://arxiv.org/abs/2502.20309">Paper</Anchor></Text>
     </Container>);
 }
