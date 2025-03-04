@@ -27,10 +27,22 @@ import { allowedDifficulties, allowedSkills, allowedDomains } from "./API";
 import { useGlobusAuth } from "@globus/react-auth-context";
 
 export function QuestionAuthoring() {
-  const { isAuthenticated, authorization } = useGlobusAuth();
+  let isAuthenticated: boolean;
+  let defaultUserName: string;
+  let defaultAffiliation: string;
+  if(import.meta.env.VITE_USE_GLOBUS === "true") {
+      const { isAuthenticated: isGlobusAuthenticated, authorization } = useGlobusAuth();
+      defaultUserName = authorization?.user?.name || "";
+      defaultAffiliation = authorization?.user?.organization || "";
+      isAuthenticated = isGlobusAuthenticated;
+  } else {
+      defaultUserName =  "";
+      defaultAffiliation = "";
+      isAuthenticated = true;
+  }
   const [authorInfo, setAuthorInfo] = useState<AuthorInfoCallbackData>({
-    authorName: authorization?.user?.name || "",
-    authorAffiliation: authorization?.user?.organization || "",
+    authorName: defaultUserName,
+    authorAffiliation: defaultAffiliation,
     orcid: "",
     authorPosition: "",
     reviewerSkills: [],
@@ -171,7 +183,17 @@ interface QuestionsFormProps {
 }
 
 export function QuestionsForm({ author }: QuestionsFormProps) {
-  const { authorization, isAuthenticated } = useGlobusAuth();
+  let isAuthenticated: boolean;
+  let auth_token: string|undefined;
+  if(import.meta.env.VITE_USE_GLOBUS === "true") {
+      const { authorization,  isAuthenticated: isGlobusAuthenticated} = useGlobusAuth();
+      isAuthenticated = isGlobusAuthenticated;
+      auth_token = authorization?.tokens?.getByResourceServer("681c10cc-f684-4540-bcd7-0b4df3bc26ef")?.access_token;
+  } else {
+      auth_token = "disabled";
+      isAuthenticated = true;
+  }
+
   const [edited, setEdited] = useState(false);
   const [question, setQuestionImpl] = useState("");
   const setQuestion = (value: string) => {
@@ -293,14 +315,13 @@ export function QuestionsForm({ author }: QuestionsFormProps) {
           "Globus Authentication Problem, please logout and try again",
         );
       }
-      console.log(authorization);
       const response = await fetch(
         import.meta.env.BASE_URL + "../api/test_question",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer: ${authorization?.tokens?.getByResourceServer("681c10cc-f684-4540-bcd7-0b4df3bc26ef")?.access_token}`,
+            Authorization: `Bearer: ${auth_token}`,
           },
           body: JSON.stringify({
             question: question,

@@ -45,18 +45,20 @@ export default function App() {
 }
 
 function Router() {
-  const { isAuthenticated, authorization } = useGlobusAuth();
-  useEffect(() => {
-    async function attempt() {
-      if (!authorization || isAuthenticated) {
-        return;
-      }
-      await authorization?.handleCodeRedirect({
-        shouldReplace: false,
-      });
-    }
-    attempt();
-  }, [authorization, authorization?.handleCodeRedirect, isAuthenticated]);
+  if(import.meta.env.VITE_USE_GLOBUS === "true") {
+      const { isAuthenticated, authorization } = useGlobusAuth();
+      useEffect(() => {
+        async function attempt() {
+          if (!authorization || isAuthenticated) {
+            return;
+          }
+          await authorization?.handleCodeRedirect({
+            shouldReplace: false,
+          });
+        }
+        attempt();
+      }, [authorization, authorization?.handleCodeRedirect, isAuthenticated]);
+  }
 
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>

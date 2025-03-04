@@ -3,6 +3,7 @@ COPY frontend/package.json frontend/package-lock.json /app/
 WORKDIR /app
 RUN npm install
 COPY frontend/ /app
+ARG VITE_USE_GLOBUS=true
 RUN npm run builddev
 
 FROM python:3.12 AS backend

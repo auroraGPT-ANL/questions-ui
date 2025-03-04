@@ -32,7 +32,22 @@ export function AuthorInfo({
   configureAuthor: configureReviewer,
   defaults,
 }: AuthorInfoProps) {
-  const { isAuthenticated, authorization } = useGlobusAuth();
+    let isAuthenticated: boolean;
+    let defaultUserName: string;
+    let defaultOrganization: string;
+    let authorization: any;
+  if(import.meta.env.VITE_USE_GLOBUS === "true") {
+      const { isAuthenticated: isGlobusAuthenticated, authorization: globusAuthorization } = useGlobusAuth();
+      isAuthenticated = isGlobusAuthenticated;
+      authorization = globusAuthorization;
+      defaultUserName =authorization?.user?.name!;
+      defaultOrganization = authorization?.user?.organization!;
+  } else {
+      isAuthenticated = true;
+      defaultUserName = "";
+      defaultOrganization = "";
+      authorization = null;
+  }
   const [authorName, setAuthorName] = useState(defaults.authorName || "");
   const [authorPosition, setAuthorPosition] = useState(
     defaults.authorPosition || "",
@@ -49,14 +64,16 @@ export function AuthorInfo({
   //login should initialize name and affiliation if they are not setup
   useEffect(() => {
     if (isAuthenticated && defaults.authorName === "" && authorName === "") {
-      setAuthorName(authorization?.user?.name!);
+      if(import.meta.env.VITE_USE_GLOBUS === "true") {
+          setAuthorName(defaultUserName);
+      }
     }
     if (
       isAuthenticated &&
       defaults.authorAffiliation === "" &&
       authorAffiliation === ""
     ) {
-      setAuthorInstition(authorization?.user?.organization!);
+      setAuthorInstition(defaultOrganization);
     }
   }, [isAuthenticated, authorization, defaults, authorAffiliation, authorName]);
 
@@ -164,8 +181,12 @@ export function AuthorInfo({
 
   return authRequired && !isAuthenticated ? (
     <>
-      <h1>Globus Authentication is Now Required to Author Questions</h1>
-      <button onClick={async () => await authorization?.login()}>login</button>
+    {
+      (import.meta.env.VITE_USE_GLOBUS==="true")?
+      (<><h1>Globus Authentication is Now Required to Author Questions</h1>
+      <button onClick={async () => await authorization?.login()}>login</button></>):
+          (<><h1>Authorization Disabled</h1></>)
+    }
     </>
   ) : (
     <>
