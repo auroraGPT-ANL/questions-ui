@@ -16,6 +16,7 @@ from pprint import pprint
 import uuid
 import config
 import textwrap
+import export
 
 FILES_PATH = Path("files")
 FILES_PATH.mkdir(exist_ok=True)
@@ -451,6 +452,66 @@ def report_validation_log(log_id:int =3, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=404, detail="not found")
 
+@app.get("/api/reports/jam_export", response_model=export.JamExport)
+def jam_export_v1(db: Session = Depends(get_db)):
+    r = export.JamExport(version=export.JamVersion(version="1.0.0"), experiments=[])
+    for log in db.query(ExperimentLog).all():
+        r.experiments.append(export.JamExperiment(id=log.id))
+        if prelim_q := db.query(PreliminaryEvaluation).options(
+                joinedload(PreliminaryEvaluation.reasoning_experience),
+                joinedload(PreliminaryEvaluation.experience),
+                ).filter(PreliminaryEvaluation.id == log.preliminary_evaluation_id).first():
+            r.experiments[-1].title = prelim_q.title
+            r.experiments[-1].description = prelim_q.description
+            r.experiments[-1].model = prelim_q.model
+            r.experiments[-1].ai_experience = prelim_q.experience.description
+            r.experiments[-1].reasoning_experience = prelim_q.reasoning_experience.description
+            r.experiments[-1].realism = prelim_q.realism
+            r.experiments[-1].difficulty_explaination = prelim_q.difficulty_explaination
+            r.experiments[-1].goal = prelim_q.goal
+            r.experiments[-1].comments = prelim_q.comments
+
+        for turn in db.query(ExperimentTurn).filter(ExperimentTurn.experiment_id == log.id).order_by(ExperimentTurn.id).all():
+            r.experiments[-1].turns.append(export.JamTurn(
+                id = turn.id,
+                previous_turn = turn.previous_turn_id,
+                experiment_id = turn.experiment_id,
+                output = turn.output,
+                prompt = turn.prompt,
+                goal = turn.goal,
+                other_task = turn.other_task,
+                other_task_assessment = turn.other_task_assessment,
+                ))
+            if turn.files_url != "":
+                r.experiments[-1].turns[-1].files_url = [turn.files_url]
+            for f in db.query(ExperimentTurnFiles).filter(ExperimentTurnFiles.turn_id == turn.id).all():
+                r.experiments[-1].turns[-1].files.append(export.JamFiles(
+                        id= f.id,
+                        turn_id= f.turn_id,
+                        path= f.file_path,
+                    ))
+            for s in (db.query(ExperimentTurnEvaluation)
+                .options(joinedload(ExperimentTurnEvaluation.skill))
+                .filter(ExperimentTurnEvaluation.turn_id == turn.id)):
+                r.experiments[-1].turns[-1].skill_assessments.append(export.JamSkill(
+                        name= s.skill.description,
+                        assessment= s.skill_comments,
+                    ))
+            if turn.other_task != "" or turn.other_task_assessment != "":
+                pass
+        if final_q := (db.query(FinalEvaluation).options(
+                    joinedload(FinalEvaluation.overall),
+                    joinedload(FinalEvaluation.novelty),
+                    joinedload(FinalEvaluation.productivity),
+                    joinedload(FinalEvaluation.teamwork),
+                    joinedload(FinalEvaluation.completeness),
+                ).filter(FinalEvaluation.id == log.final_evaluation_id).first()):
+            r.experiments[-1].main_strength = final_q.main_strength
+            r.experiments[-1].main_weakness = final_q.main_weakness
+            r.experiments[-1].daily_use = final_q.daily_use
+            r.experiments[-1].productivity_improvement = final_q.productivity_improvement
+            r.experiments[-1].event_improvement = final_q.event_improvement
+    return r
 
 
 @app.get("/api/contributions/{author_id}", response_model=ContributionsSchema)
