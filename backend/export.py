@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -54,4 +55,16 @@ class JamExperiment(BaseModel):
 class JamExport(BaseModel):
     version: JamVersion
     experiments: list[JamExperiment]
+
+if __name__ == "__main__":
+    import json
+    import argparse
+    from pydantic import ValidationError
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", type=argparse.FileType('r'))
+    args = parser.parse_args()
+    try:
+        JamExport(**json.load(args.file))
+    except ValidationError as e:
+        print("validation error", e.json())
 
