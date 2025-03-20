@@ -474,13 +474,14 @@ def jam_export_v1(db: Session = Depends(get_db)):
         for turn in db.query(ExperimentTurn).filter(ExperimentTurn.experiment_id == log.id).order_by(ExperimentTurn.id).all():
             r.experiments[-1].turns.append(export.JamTurn(
                 id = turn.id,
-                previous_turn = turn.previous_turn_id,
+                previous_turn = turn.previous_turn_id or 0,
                 experiment_id = turn.experiment_id,
                 output = turn.output,
                 prompt = turn.prompt,
                 goal = turn.goal,
                 other_task = turn.other_task,
                 other_task_assessment = turn.other_task_assessment,
+                data_removed = turn.data_removed,
                 ))
             if turn.files_url != "":
                 r.experiments[-1].turns[-1].files_url = [turn.files_url]

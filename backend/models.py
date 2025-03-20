@@ -208,6 +208,8 @@ class ExperimentTurn(Base):
     other_task: Mapped[str] = mapped_column(server_default="")
     other_task_assessment: Mapped[str] = mapped_column(server_default="")
     files_url: Mapped[str] = mapped_column(server_default="")
+    data_removed: Mapped[bool] = mapped_column(server_default='0')
+
 
     experiment: Mapped[ExperimentLog] = relationship()
     previous_turn: Mapped[Optional["ExperimentTurn"]] = relationship(remote_side=[id])
