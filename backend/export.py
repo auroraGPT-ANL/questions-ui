@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 class JamVersion(BaseModel):
-    version: str = Field(default="1.0.0")
+    version: str = Field(default="1.1.0")
 
 class JamSkill(BaseModel):
     name: str
@@ -28,7 +28,11 @@ class JamTurn(BaseModel):
     other_task: str = Field(default="")
     other_task_assessment: str = Field(default="")
     files_url: list[str] = Field(default_factory=list)# if files are subject to copyright, remove from files array and provide one URL per file
-    files: list[JamFiles] = Field(default_factory=list)# the files for your site
+    files: list[JamFiles] = Field(default_factory=list)# the files for your site that are not Copyright concerns
+
+    #new in version 1.1.0
+    data_removed: bool = Field(default=False) # if the data was removed because it could NOT be replaced with a URL
+                                              # (e.g. because of a security or copyright review), mark this as True
 
 
 class JamExperiment(BaseModel):
