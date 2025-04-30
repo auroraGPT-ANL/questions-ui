@@ -454,7 +454,7 @@ def report_validation_log(log_id:int =3, db: Session = Depends(get_db)):
 
 @app.get("/api/reports/jam_export", response_model=export.JamExport)
 def jam_export_v1(db: Session = Depends(get_db)):
-    r = export.JamExport(version=export.JamVersion(version="1.0.0"), experiments=[])
+    r = export.JamExport(version=export.JamVersion(version="1.1.0"), experiments=[])
     for log in db.query(ExperimentLog).all():
         r.experiments.append(export.JamExperiment(id=log.id))
         if prelim_q := db.query(PreliminaryEvaluation).options(
@@ -520,7 +520,7 @@ def get_contributions(author_id : int, validations: int = 3, db: Session = Depen
     return contributions(db, author_id, validations=validations)
 
 @app.post("/api/review_batch", response_model=list[int])
-def get_review_batch(reviewer: ReviewerSchema, db: Session = Depends(get_db), limit:int=10, validations:int = 1):
+def get_review_batch(reviewer: ReviewerSchema, db: Session = Depends(get_db), limit:Optional[int]=None, validations:int = 1):
     return [r.id for r in select_review_batch(db, reviewer, limit, validations)]
 
 @app.post("/api/test_question", response_model=list[QuestionEvalSchema])

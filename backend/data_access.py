@@ -142,24 +142,25 @@ def create_review(db: Session, review: CreateReviewSchema) -> Review:
     db.refresh(r)
     return r
 
-def select_review_batch(db: Session, reviewer: ReviewerSchema, limit: int, validations: int):
-    domain_ids = db.query(Domain.id).filter(Domain.name.in_(reviewer.domains)).subquery()
-    author = create_or_select_author(db, reviewer.author)
-    skips = db.query(Skips.c.question_id).filter(Skips.c.author_id != author.id).subquery()
-    to_review = (db.query(Question.id)
-        .outerjoin(Review, Review.question_id == Question.id)
+def select_review_batch(db: Session, reviewer_schema: ReviewerSchema, limit: Optional[int], validations: int):
+    domain_ids = db.query(Domain.id).filter(Domain.name.in_(reviewer_schema.domains)).subquery().select()
+    reviewer = create_or_select_author(db, reviewer_schema.author)
+    skips = db.query(Skips.c.question_id).filter(Skips.c.author_id != reviewer.id).subquery().select()
+    to_review_q = (db.query(Question.id)
+        .outerjoin(Review, Review.question_id == Question.id, full=True)
         .outerjoin(domains_to_questions, domains_to_questions.c.question_id == Question.id)
         .filter(
-            Question.author_id != author.id,
-            domains_to_questions.c.question_id.in_(domain_ids),
+            Question.author_id != reviewer.id,
+            domains_to_questions.c.domain_id.in_(domain_ids),
             Question.id.not_in(skips)
             )
         .group_by(Question.id)
         .having(func.count(Review.id) < validations)
         .order_by(func.random())
-        .limit(limit)
-    ).all()
-    return to_review
+    )
+    if limit is not None:
+        to_review_q = to_review_q.limit(limit)
+    return to_review_q.all()
 
 def validated_questions(db: Session, validations: int) -> list[Question]:
     if validations > 0:

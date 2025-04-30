@@ -36,6 +36,50 @@ function formatReviewAction(r: ReviewAction | string): string {
       return "";
   }
 }
+
+async function nextQuestion(reviewerID: number, authorInfo: AuthorInfoCallbackData, setQuestion: (question: Questions) => void) {
+    //determine the next question and load it
+    const reviewbatch_response = await fetch(
+      import.meta.env.BASE_URL + "../api/review_batch?limit=1&validations=1",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          author: reviewerID,
+          domains: authorInfo.reviewerSkills,
+        }),
+      },
+    );
+    if (!reviewbatch_response.ok) {
+      throw new Error(reviewbatch_response.statusText);
+    }
+
+    //should have 0 or 1 elements
+    const to_review_ids: number[] = await reviewbatch_response.json();
+    if (to_review_ids.length == 1) {
+      const ids_query = "?" + to_review_ids.map((x) => `ids=${x}`).join("&");
+      const questions_response = await fetch(
+        import.meta.env.BASE_URL + `../api/question${ids_query}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      if (!questions_response.ok) {
+        throw new Error(questions_response.statusText);
+      }
+      const review_questions: Questions[] = await questions_response.json();
+      setQuestion(review_questions[0]);
+    } else {
+      console.log(to_review_ids);
+    }
+
+}
+
 interface History {
   review_id: number | null;
   question: string;
@@ -591,6 +635,7 @@ export function QuestionReviewing() {
     setConfigured(true);
   };
 
+
   const skipCallback = async (question_id: number) => {
     try {
       const skip_response = await fetch(
@@ -609,10 +654,18 @@ export function QuestionReviewing() {
       if (!skip_response.ok) {
         throw new Error(`failed to skip: ${skip_response.statusText}`);
       }
+      if(progress.goal <= progress.sofar) {
+          notifications.show({
+            title: "submitted review",
+            message: `You've done great!, would you like to do 5 more?`,
+            autoClose: 5000,
+          });
+      }
       setProgress((progress: ProgressProps) => {
         return {
           ...progress,
           sofar: progress.sofar + 1,
+          goal: (progress.goal <= progress.sofar)? progress.goal+5: progress.goal,
           history: [
             {
               review_id: null,
@@ -625,6 +678,9 @@ export function QuestionReviewing() {
           ],
         };
       });
+      await nextQuestion(reviewerID, authorInfo, setQuestion);
+
+
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });
       notifications.show({
         title: "skipped question",
@@ -639,10 +695,23 @@ export function QuestionReviewing() {
     }
   };
   const submitCallback = async (approved: boolean, review_id: number) => {
+    if(progress.goal <= progress.sofar) {
+        notifications.show({
+          title: "submitted review",
+          message: `You've done great!, would you like to do 5 more?`,
+          autoClose: 5000,
+        });
+    }
+    notifications.show({
+      title: "submitted review",
+      message: `successfully submitted your question: ${question!.id!}: ${question!.question}`,
+      autoClose: 5000,
+    });
     setProgress((progress: ProgressProps) => {
       return {
         ...progress,
         sofar: progress.sofar + 1,
+        goal: (progress.goal <= progress.sofar)? progress.goal+5: progress.goal,
         history: [
           {
             review_id: review_id,
@@ -655,45 +724,8 @@ export function QuestionReviewing() {
         ],
       };
     });
-    //determine the next question and load it
-    const reviewbatch_response = await fetch(
-      import.meta.env.BASE_URL + "../api/review_batch?limit=1&validations=1",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          author: reviewerID,
-          domains: authorInfo.reviewerSkills,
-        }),
-      },
-    );
-    if (!reviewbatch_response.ok) {
-      throw new Error(reviewbatch_response.statusText);
-    }
 
-    //should have 0 or 1 elements
-    const to_review_ids: number[] = await reviewbatch_response.json();
-    if (to_review_ids.length == 1) {
-      const ids_query = "?" + to_review_ids.map((x) => `ids=${x}`).join("&");
-      const questions_response = await fetch(
-        import.meta.env.BASE_URL + `../api/question${ids_query}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-      if (!questions_response.ok) {
-        throw new Error(questions_response.statusText);
-      }
-      const review_questions: Questions[] = await questions_response.json();
-      setQuestion(review_questions[0]);
-    } else {
-      console.log(to_review_ids);
-    }
+    await nextQuestion(reviewerID, authorInfo, setQuestion);
 
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     notifications.show({
