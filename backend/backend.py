@@ -220,42 +220,45 @@ def get_review(review_id:int, db: Session =Depends(get_db)):
 @app.put("/api/review/{review_id}", response_model=ReviewSchema)
 def update_review(review_id:int, review: CreateReviewSchema, db: Session =Depends(get_db)):
     r = db.query(Review).get(review_id)
+    a = create_or_select_author(db, review.author)
+    db.query(Skips).filter(Skips.c.author_id == a.id, Skips.c.question_id == review.question_id).delete(synchronize_session='evaluate')
     if r is not None:
-        r.questionrelevent=review.questionrelevent,
-        r.questionfromarticle=review.questionfromarticle,
-        r.questionindependence=review.questionindependence,
-        r.questionchallenging=review.questionchallenging,
-        r.answerrelevent=review.answerrelevent,
-        r.answercomplete=review.answercomplete,
-        r.answerfromarticle=review.answerfromarticle,
-        r.answerunique=review.answerunique,
-        r.answeruncontroverial=review.answeruncontroverial,
-        r.arithmaticfree=review.arithmaticfree,
-        r.skillcorrect=review.skillcorrect,
-        r.domaincorrect=review.domaincorrect,
-        r.comments=review.comments,
-        r.accept=review.accept,
+        r.questionrelevent=review.questionrelevent
+        r.questionfromarticle=review.questionfromarticle
+        r.questionindependence=review.questionindependence
+        r.questionchallenging=review.questionchallenging
+        r.answerrelevent=review.answerrelevent
+        r.answercomplete=review.answercomplete
+        r.answerfromarticle=review.answerfromarticle
+        r.answerunique=review.answerunique
+        r.answeruncontroverial=review.answeruncontroverial
+        r.arithmaticfree=review.arithmaticfree
+        r.skillcorrect=review.skillcorrect
+        r.domaincorrect=review.domaincorrect
+        r.comments=review.comments
+        r.accept=review.accept
+        r.modified=func.current_timestamp()
         db.add(r)
         db.commit()
         db.refresh(r)
         return ReviewSchema(
             id=r.id,
-            author=r.author,
+            author=a.id,
             question_id=r.question_id,
-            questionrelevent=r.questionrelevent[0],
-            questionfromarticle=r.questionfromarticle[0],
-            questionindependence=r.questionindependence[0],
-            questionchallenging=r.questionchallenging[0],
-            answerrelevent=r.answerrelevent[0],
-            answercomplete=r.answercomplete[0],
-            answerfromarticle=r.answerfromarticle[0],
-            answerunique=r.answerunique[0],
-            answeruncontroverial=r.answeruncontroverial[0],
-            arithmaticfree=r.arithmaticfree[0],
-            skillcorrect=r.skillcorrect[0],
-            domaincorrect=r.domaincorrect[0],
-            comments=r.comments[0],
-            accept=r.accept[0],
+            questionrelevent=r.questionrelevent,
+            questionfromarticle=r.questionfromarticle,
+            questionindependence=r.questionindependence,
+            questionchallenging=r.questionchallenging,
+            answerrelevent=r.answerrelevent,
+            answercomplete=r.answercomplete,
+            answerfromarticle=r.answerfromarticle,
+            answerunique=r.answerunique,
+            answeruncontroverial=r.answeruncontroverial,
+            arithmaticfree=r.arithmaticfree,
+            skillcorrect=r.skillcorrect,
+            domaincorrect=r.domaincorrect,
+            comments=r.comments,
+            accept=r.accept,
         ) 
     else:
         KeyError(f"Review {review_id} is not found")
@@ -275,6 +278,7 @@ def skip_review(skip_request: SkipSchema, db: Session =Depends(get_db)):
 @app.post("/api/review", response_model=ReviewSchema)
 def store_review(review: CreateReviewSchema, db: Session =Depends(get_db)):
     r = create_review(db, review)
+    db.query(Skips).filter(Skips.c.author_id == r.author.id, Skips.c.question_id == review.question_id).delete(synchronize_session='evaluate')
     return ReviewSchema(
         id=r.id,
         author=r.author.id,

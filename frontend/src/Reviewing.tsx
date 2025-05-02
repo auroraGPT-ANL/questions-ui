@@ -123,7 +123,7 @@ function ProgressTrackerUI({
           {history.map((h) => (
             <li key={`${h.review_id}-${h.question_id}`}>
               <a onClick={() => navigateHistoryCallback(h.question_id)}>
-                {formatReviewAction(h.action)} {h.review_id}:{" "}
+                {formatReviewAction(h.action)} {h.question_id}:{" "}
                 {h.question.substring(0, 100) +
                   (h.question.length > 100 ? "…" : "")}
               </a>
