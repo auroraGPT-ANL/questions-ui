@@ -1,20 +1,24 @@
 #!/usr/bin/env python
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 class JamVersion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     version: str = Field(default="1.1.0")
 
 class JamSkill(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     name: str
     assessment: str
 
 class JamFiles(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     id: int
     turn_id: int
     path: str
 
 class JamTurn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     id: int
     previous_turn: int = Field(default=0)
     experiment_id: int
@@ -36,6 +40,7 @@ class JamTurn(BaseModel):
 
 
 class JamExperiment(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     id: int
     #from the initial assessment
     title: str = Field(default="")
@@ -57,6 +62,7 @@ class JamExperiment(BaseModel):
     turns: list[JamTurn] = Field(default_factory=list)
 
 class JamExport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     version: JamVersion
     experiments: list[JamExperiment]
 
@@ -70,5 +76,6 @@ if __name__ == "__main__":
     try:
         JamExport(**json.load(args.file))
     except ValidationError as e:
-        print("validation error", e.json())
+        for err in e.errors():
+            print(err)
 
