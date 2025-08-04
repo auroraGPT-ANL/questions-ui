@@ -101,7 +101,7 @@ def create_question(db: Session, question: CreateQuestionSchema) -> Question:
     db.refresh(db_question)
     return db_question
 
-def list_questions(db: Session, skip: int = 0, limit: int = 100, author_id: Optional[int] = None, query: Optional[str] = None, ids: Optional[list[int]] = None) -> list[Question]:
+def list_questions(db: Session, skip: int = 0, limit: int = 100, author_ids: Optional[list[int]] = None, query: Optional[str] = None, ids: Optional[list[int]] = None, domains: Optional[list[int]] = None, validated: Optional[bool] = None) -> list[Question]:
     q = db.query(Question).options(
             joinedload(Question.author),
             joinedload(Question.difficulty),
@@ -111,10 +111,21 @@ def list_questions(db: Session, skip: int = 0, limit: int = 100, author_id: Opti
            )
     if query is not None:
         q = q.filter(Question.question.ilike(f"%{query}%"))
-    if author_id is not None:
-        q = q.filter(Question.author_id == author_id)
+    if author_ids is not None:
+        q = q.filter(Question.author_id.in_(author_ids))
     if ids is not None:
         q = q.filter(Question.id.in_(ids))
+    if domains is not None:
+        q = q.join(domains_to_questions)
+        q = q.filter(domains_to_questions.c.domain_id.in_(domains))
+    if validated is not None:
+        v = db.query(Question.id).outerjoin(Review, full=True).group_by(Review.id)
+        if validated:
+            v = v.having(func.count(Review.id) < 1)
+        else:
+            v = v.having(func.count(Review.id) >= 1)
+        q = q.filter(Question.id.not_in(v.subquery().select()))
+
     return q.offset(skip).limit(limit).all()
 
 

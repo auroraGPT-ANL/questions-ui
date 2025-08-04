@@ -281,3 +281,13 @@ class LoginSchema(BaseModel):
     password: str
 class TokenSchema(BaseModel):
     token: str
+
+class ReviewRemainingItem(BaseModel):
+    key: str
+    count: int
+class ReviewRemaining(BaseModel):
+    values: list[ReviewRemainingItem]
+
+class DomainResponse(BaseModel):
+    name: str
+    id: int

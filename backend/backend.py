@@ -12,7 +12,6 @@ from schemas import *
 from data_access import *
 from passlib.context import CryptContext
 from ai import test_question_impl, eval_result
-from pprint import pprint
 import uuid
 import config
 import textwrap
@@ -31,7 +30,6 @@ app.mount("/ui/assets/", StaticFiles(directory="ui/assets"), name="ui")
 @app.get("/ui/", response_class=FileResponse, include_in_schema=False)
 @app.get("/ui/{path:path}", response_class=FileResponse, include_in_schema=False)
 def authoring(_: Request, path: Optional[Path] = None):
-    print(path)
     if path == Path("favicon.svg"):
         return FileResponse("ui/favicon.svg")
     else:
@@ -67,14 +65,18 @@ def store_author(author: CreateAuthorSchema, db: Session = Depends(get_db)):
             )
 
 @app.get("/api/author", response_model=list[AuthorSchema])
-def list_authors(db: Session = Depends(get_db), limit:int=100, skip:int=0):
+def list_authors(name: Optional[str] = None, db: Session = Depends(get_db), limit:int=100, skip:int=0):
+    results = db.query(Author)
+    if name is not None:
+        results = results.filter(Author.name == name)
+    results = results.offset(skip).limit(limit).all()
     return [AuthorSchema(
                 id=i.id,
                 name=i.name,
                 position=i.position.name,
                 affilliation=i.affiliation.name,
                 orcid=i.orcid,
-            ) for i in db.query(Author).offset(skip).limit(limit).all()]
+            ) for i in results]
 
 @app.get("/api/author/{id}", response_model=AuthorSchema)
 def get_author(id: int, db: Session = Depends(get_db)):
@@ -122,7 +124,7 @@ def store_question(question: CreateQuestionSchema, db: Session = Depends(get_db)
             )
 
 @app.get("/api/question", response_model=list[QuestionSchema])
-def get_questions(db: Session = Depends(get_db), author_id: Optional[int] = None, skip:int=0, limit:int=100, q:Optional[str]=None, ids: Annotated[list[int] | None, Query()] = None):
+def get_questions(db: Session = Depends(get_db), author_ids: Annotated[list[int] | None, Query()] = None, skip:int=0, limit:int=100, q:Optional[str]=None, ids: Annotated[list[int] | None, Query()] = None, domain: Annotated[list[int] | None, Query()] = None, validated: Optional[bool] = None):
     return [QuestionSchema(
                 id=i.id,
                 question=i.question,
@@ -136,7 +138,7 @@ def get_questions(db: Session = Depends(get_db), author_id: Optional[int] = None
                 support=i.support,
                 comments=i.comments,
             )
-            for i in list_questions(db, skip, limit, author_id=author_id, query=q, ids=ids)]
+            for i in list_questions(db, skip, limit, author_ids=author_ids, query=q, ids=ids, domains=domain, validated=validated)]
 
 @app.get("/api/question/{id}", response_model=QuestionSchema)
 def get_question(id :int, db: Session = Depends(get_db)):
@@ -216,6 +218,40 @@ def get_review(review_id:int, db: Session =Depends(get_db)):
         ) 
     else:
         KeyError(f"Review {review_id} is not found")
+
+@app.put("/api/question/{question_id}", response_model=QuestionSchema)
+def update_question(question_id: int, changes: CreateQuestionSchema, db: Session= Depends(get_db)):
+    q = db.query(Question).get(question_id)
+    if q is not None:
+        q.question = changes.question
+        q.correct_answer = changes.correct_answer
+        q.doi = changes.doi
+        q.support = changes.support
+        q.comments = changes.comments
+        if set(changes.distractors) != set(i.text for i in q.distractors):
+            q.distractors = [Distractor(text=d) for d in changes.distractors]
+        q.author_id = create_or_select_author(db, changes.author).id
+        q.skills=[insert_or_select(db, Skill, s) for s in changes.skills],
+        q.domains=[insert_or_select(db, Domain, d) for d in changes.domains],
+        q.difficulty=insert_or_select(db, Difficulty, changes.difficulty),
+        db.add(q)
+        db.commit()
+        db.refresh(q)
+        return QuestionSchema(
+                id=q.id,
+                question=q.question,
+                correct_answer=q.correct_answer,
+                distractors=[d.text for d in q.distractors],
+                skills=[s.name for s in q.skills],
+                domains=[d.name for d in q.domains],
+                difficulty=q.difficulty.name,
+                doi=q.doi,
+                author=q.author.id,
+                support=q.support,
+                comments=q.comments,
+                )
+    else:
+        KeyError(f"Question {question_id} is not found")
 
 @app.put("/api/review/{review_id}", response_model=ReviewSchema)
 def update_review(review_id:int, review: CreateReviewSchema, db: Session =Depends(get_db)):
@@ -326,6 +362,16 @@ def reviewer_history(author_id: int, db: Session = Depends(get_db), limit:int=10
                 action=h.accept,
                 modified=h.modified
             ) for h in history]
+
+
+@app.get("/api/domain", response_model=list[DomainResponse])
+async def get_domains(name: Optional[str] = None, db: Session = Depends(get_db)):
+    r = db.query(Domain.id, Domain.name)
+    if name is not None:
+        r = r.filter(func.lower(Domain.name) == name.lower())
+    r = r.all()
+    return [DomainResponse( name=i.name, id=i.id) for i in r]
+
 
 @app.get("/api/reports/validated", response_model=list[QuestionSchema])
 def reported_validated_questions(validations:int =3, db: Session = Depends(get_db)):
@@ -532,7 +578,6 @@ async def test_question(question: CreateQuestionSchema, authorization: Annotated
     api_key = authorization.split(":")[1].strip()
     results: list[asyncio.Task[eval_result]] = []
     try:
-        print(config.MODEL_NAME_MAP)
         async with asyncio.TaskGroup() as tg:
             for model in config.MODEL_NAME_MAP:
                 results.append(tg.create_task(test_question_impl(model, question.question, question.correct_answer, question.distractors, api_key)))
@@ -729,3 +774,46 @@ async def create_experiment_turn_file(
     db.commit()
     db.refresh(file_metadata)
     return file_metadata.id
+
+@app.get("/api/reports/reviews_needed", response_model=ReviewRemaining)
+async def reviews_needed(validations: int = 1, db: Session = Depends(get_db)):
+    unvalidated_questions = (db.query(Question.id.label("id"))
+        .outerjoin(Review, Question.id == Review.question_id, full=True)
+        .group_by(Question.id)
+        .having(func.count(Review.id) < validations)
+       ).subquery()
+    remaining = (
+            db.query(Domain.name, func.count(Domain.id))
+            .select_from(unvalidated_questions)
+            .join(domains_to_questions, unvalidated_questions.c.id == domains_to_questions.c.question_id)
+            .join(Domain, domains_to_questions.c.domain_id == Domain.id)
+            .group_by(func.lower(Domain.name))
+            .order_by(func.count(Domain.id).desc())
+     )
+    c = db.query(func.count(unvalidated_questions.c.id)).select_from(unvalidated_questions).scalar()
+
+    return ReviewRemaining(values=
+        [ReviewRemainingItem(key="total", count=c)] + 
+        [ ReviewRemainingItem(key=domain, count=count) for domain, count in remaining]
+        )
+
+@app.get("/api/reports/reviewers_progress", response_model=ReviewRemaining)
+async def reviewers_progress(db: Session = Depends(get_db)):
+    so_far = (db.query(Author.name, func.count(Review.author_id))
+              .join(Author)
+              .group_by(Review.author_id)
+              .order_by(
+                  func.lower(
+                      func.trim(
+                          func.substr(
+                              Author.name,
+                              func.instr(Author.name, ' ') + 1
+                              )
+                          )
+                      )
+                  )
+              )
+
+    return ReviewRemaining(values=
+        [ ReviewRemainingItem(key=author, count=count) for author, count in so_far]
+        )

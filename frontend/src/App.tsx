@@ -10,6 +10,8 @@ import { Contributions } from "./Contributions";
 import { LabStyle } from "./LabStyle";
 import { Login } from "./Login";
 import { Main } from "./MainPage";
+import { Monitoring } from "./Monitoring";
+import { Editorial } from "./Editorial";
 import {
   Provider as GlobusAuthProvider,
   useGlobusAuth,
@@ -69,6 +71,8 @@ function Router() {
         <Route path="/contributions" element={<Contributions />} />
         <Route path="/reviewing" element={<QuestionReviewing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/monitor" element={<Monitoring />} />
+        <Route path="/editorial" element={<Editorial />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

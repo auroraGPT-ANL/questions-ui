@@ -104,3 +104,17 @@ export const allowedDomains = [
   "mathematics",
   "climate",
 ];
+
+
+export interface Domain {
+    name: string;
+    id: number;
+}
+
+export interface ReviewProgress {
+    key: string;
+    count: number;
+}
+export interface ReviewProgressResponse {
+    values: ReviewProgress[];
+}

@@ -545,7 +545,7 @@ export function QuestionReviewing() {
   const [progress, setProgress] = useState<ProgressProps>({
     project: "AuroraGPT",
     sofar: 0,
-    goal: 10,
+    goal: 50,
     history: [],
   });
   const [question, setQuestion] = useState<Questions | null>(null);
@@ -609,7 +609,7 @@ export function QuestionReviewing() {
     const reviewer_history: History[] = await reviewhistory_response.json();
 
     setProgress((progress: ProgressProps) => {
-      return { ...progress, goal: 10, history: reviewer_history };
+      return { ...progress, goal: 50, history: reviewer_history };
     });
 
     if (to_review_ids.length == 1) {
