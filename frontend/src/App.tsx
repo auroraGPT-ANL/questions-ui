@@ -47,7 +47,7 @@ export default function App() {
 }
 
 function Router() {
-  if(import.meta.env.VITE_USE_GLOBUS === "true") {
+  if(import.meta.env.VITE_USE_GLOBUS == "true") {
       const { isAuthenticated, authorization } = useGlobusAuth();
       useEffect(() => {
         async function attempt() {

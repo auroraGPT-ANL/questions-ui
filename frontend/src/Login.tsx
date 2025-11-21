@@ -1,7 +1,7 @@
 import { useGlobusAuth } from "@globus/react-auth-context";
 
 export function Login() {
-  if (import.meta.env.VITE_USE_GLOBUS === "true") {
+  if (import.meta.env.VITE_USE_GLOBUS == "true") {
       const { isAuthenticated, authorization } = useGlobusAuth();
       return isAuthenticated ? (
         <>

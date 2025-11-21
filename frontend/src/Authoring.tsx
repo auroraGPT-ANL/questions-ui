@@ -185,7 +185,7 @@ interface QuestionsFormProps {
 export function QuestionsForm({ author }: QuestionsFormProps) {
   let isAuthenticated: boolean;
   let auth_token: string|undefined;
-  if(import.meta.env.VITE_USE_GLOBUS === "true") {
+  if(import.meta.env.VITE_USE_GLOBUS == "true") {
       const { authorization,  isAuthenticated: isGlobusAuthenticated} = useGlobusAuth();
       isAuthenticated = isGlobusAuthenticated;
       auth_token = authorization?.tokens?.getByResourceServer("681c10cc-f684-4540-bcd7-0b4df3bc26ef")?.access_token;

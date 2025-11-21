@@ -1246,7 +1246,7 @@ export function LabStyle() {
   const [experimentState, setExperimentState] = useState<LabStyleState>({
     mode: LabStyleStage.ProblemSetup,
     experiment_id: null,
-    allowScore: false,
+    allowScore: import.meta.env.VITE_USE_SCORE == "true",
     author_id: null
   });
   const [configured, setConfigured] = useState<boolean>(false);

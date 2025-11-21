@@ -36,7 +36,7 @@ export function AuthorInfo({
     let defaultUserName: string;
     let defaultOrganization: string;
     let authorization: any;
-  if(import.meta.env.VITE_USE_GLOBUS === "true") {
+  if(import.meta.env.VITE_USE_GLOBUS == "true") {
       const { isAuthenticated: isGlobusAuthenticated, authorization: globusAuthorization } = useGlobusAuth();
       isAuthenticated = isGlobusAuthenticated;
       authorization = globusAuthorization;
