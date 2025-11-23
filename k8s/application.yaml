@@ -1,0 +1,81 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: traefik
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: questions-service
+            port:
+              number: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: questions-service
+spec:
+  selector:
+    app.kubernetes.io/name: questionsui
+  ports:
+  - name: name-of-service-port
+    protocol: TCP
+    port: 80
+    targetPort: qui-port
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: questionsui-files-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2000Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: questionsui-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: questionsui
+  labels:
+    app.kubernetes.io/name: questionsui
+spec:
+  containers:
+  - name: questionsui
+    image: ghcr.io/auroragpt-anl/questions-ui
+    ports:
+    - containerPort: 8000
+      name: qui-port
+    volumeMounts:
+    - name: questionsui-files
+      mountPath: /app/files
+    - name: questionsui-db
+      mountPath: /app/db
+  imagePullSecrets:
+  - name: questions-image-secret
+  volumes:
+  - name: questionsui-db
+    persistentVolumeClaim:
+      claimName: questionsui-db-pvc
+  - name: questionsui-files
+    persistentVolumeClaim:
+      claimName: questionsui-files-pvc

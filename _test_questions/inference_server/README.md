@@ -1,0 +1,1 @@
+It is only for building a **free** openai-compatible api endpoint for quick tests.
